@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 fs = 44100  # Sample rate
 seconds = 0.3 # Duration of recording
 
+
 myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
 sd.wait()  # Wait until recording is finished
 write('output.wav', fs, myrecording)  # Save as WAV file 
@@ -17,8 +18,8 @@ write('output.wav', fs, myrecording)  # Save as WAV file
 y, sr = librosa.load('output.wav')
 S = np.abs(librosa.stft(y))
 pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
-print(pitches[np.where(pitches>0)])
-print(magnitudes[np.where(magnitudes>0)])
+print(pitches[np.where(magnitudes>20)])
+print(magnitudes[np.where(magnitudes>20)])
 
 
 fig, ax = plt.subplots()
