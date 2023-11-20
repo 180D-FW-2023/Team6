@@ -45,7 +45,7 @@ client.loop_start()
 # 6. use disconnect() to disconnect from the broker.
 
 fs = 44100  # Sample rate
-seconds = 0.3 # Duration of recording
+seconds = 0.1 # Duration of recording
 record = 1 #whether or not to record
 i = 0
 while True:
@@ -84,15 +84,18 @@ while True:
     pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
     #print(pitches[np.where(magnitudes>0)])
     #print(magnitudes[np.where(magnitudes>0)])
-    pitches_final = pitches[np.where(magnitudes>0.05)]
-    notes = librosa.hz_to_note(pitches_final)
+    pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
+    if len(pitches_final) > 0:
+        notes = librosa.hz_to_note(pitches_final)
+        notes = list(OrderedDict.fromkeys(notes))
+    else:
+        notes = ""
     print(pitches_final)
-    notes = list(OrderedDict.fromkeys(notes))
     print(notes)
-    for p in notes:
+
         #print("loop")
         #print(p)
-        client.publish('ece180d/test', p, qos=1)
+    client.publish('ece180d/test', str(notes), qos=1)
     i = i + 1
 
 client.loop_stop()
