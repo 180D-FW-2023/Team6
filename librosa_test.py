@@ -45,7 +45,7 @@ client.loop_start()
 # 6. use disconnect() to disconnect from the broker.
 
 fs = 44100  # Sample rate
-seconds = 0.1 # Duration of recording
+seconds = 0.2 # Duration of recording
 record = 1 #whether or not to record
 i = 0
 while True:
