@@ -4,7 +4,7 @@ import librosa
 import numpy as np
 from collections import OrderedDict
 np.set_printoptions(threshold=np.inf)
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import paho.mqtt.client as mqtt
 import numpy as np
 # 0. define callbacks - functions that run when events happen.
