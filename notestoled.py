@@ -1,6 +1,7 @@
 import time
 from rpi_ws281x import *
 import argparse
+import paho.mqtt.client as mqtt
 
 # LED strip configuration:
 LED_COUNT      = 15     # Number of LED pixels.
@@ -41,12 +42,56 @@ def setColorByIndices(strip, indices, color=Color(0, 128, 0), wait_ms=50):
     strip.show()
     time.sleep(wait_ms/1000.0)
 
+def on_connect(client, userdata, flags, rc):
+    print("Connection returned result: "+str(rc))
+    # Subscribing in on_connect() means that if we lose the connection and
+    # reconnect then subscriptions will be renewed.
+    client.subscribe("your_topic", qos=1)
+    
+# The callback of the client when it disconnects.
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print('Unexpected Disconnect')
+    else:
+        print('Expected Disconnect')
+
+# The default message callback.
+# (you can create separate callbacks per subscribed topic)
+def on_message(client, userdata, message):
+    
+    # reset the strip
+    setColorByIndices(strip, full_strip, Color(0,0,0), 10)
+    
+    print('Received message: "' + str(message.payload) + '" on topic "' +
+            message.topic + '" with QoS ' + str(message.qos))
+
+    # Split the input string into individual notes, strip spaces, and capitalize them
+    notes = [note.strip().upper() for note in str(message.payload).split()]
+
+    # Optionally, print the list of notes for confirmation
+    print("Current list of notes:", notes)
+    
+    setColorByIndices(strip, [note_to_led_index[note] for note in notes],wait_ms=200)
+
 # Main program logic follows:
 if __name__ == '__main__':
     # Process arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--clear', action='store_true', help='clear the display on exit')
     args = parser.parse_args()
+    
+    # 1. create a client instance.
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
+    client.on_message = on_message
+
+    # 2. connect to a broker using one of the connect*() functions.
+    client.connect_async('test.mosquitto.org')
+    # client.connect("mqtt.eclipse.org")
+
+    # 3. call one of the loop*() functions to maintain network traffic flow with the broker.
+    client.loop_start()
 
     # Create NeoPixel object with appropriate configuration.
     strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
@@ -69,25 +114,10 @@ if __name__ == '__main__':
         print('Ready...')
             
         while True:
-            
-             # Get user input (note: input will automatically stop waiting and continue the code when Enter is hit)
-            user_input = input("Enter comma-separated notes (e.g. A0,C1,D#1), or 'quit' to exit: ")
-
-            # Check if the user wants to quit the program
-            if user_input.lower() == 'quit':
-                break
-            
-            # reset the strip
-            setColorByIndices(strip, full_strip, Color(0,0,0), 10)
-
-            # Split the input string into individual notes, strip spaces, and capitalize them
-            notes = [note.strip().upper() for note in user_input.split(',')]
-
-            # Optionally, print the list of notes for confirmation
-            print("Current list of notes:", notes)
-            
-            setColorByIndices(strip, [note_to_led_index[note] for note in notes],wait_ms=200)
+            pass
 
     except KeyboardInterrupt:
+        client.loop_stop()
+        client.disconnect()
         if args.clear:
             colorWipeAll(strip, Color(0,0,0), 10)
