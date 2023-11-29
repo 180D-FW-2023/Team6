@@ -1,10 +1,11 @@
 import sounddevice as sd
 from scipy.io.wavfile import write
+from scipy.io import wavfile
 import librosa
 import numpy as np
 from collections import OrderedDict
 np.set_printoptions(threshold=np.inf)
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import paho.mqtt.client as mqtt
 import numpy as np
 # 0. define callbacks - functions that run when events happen.
@@ -50,13 +51,15 @@ record = 1 #whether or not to record
 i = 0
 while True:
     if (record == 1):
-        myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
+        myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
         sd.wait()  # Wait until recording is finished
         write('output.wav', fs, myrecording)  # Save as WAV file 
 
 
-
-    y, sr = librosa.load('output.wav')
+    sr, data = wavfile.read('output.wav')
+    #y, sr = librosa.load('output.wav',sr=None)
+    y = np.asarray(data).astype(float)
+    #print(y.shape)
     S = np.abs(librosa.stft(y))
 
     #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))

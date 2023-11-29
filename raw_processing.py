@@ -11,7 +11,7 @@ def isSilence(windowPosition):
         return False
 
 #read from wav file
-sound_file = wave.open('test.wav', 'r')
+sound_file = wave.open('test.wav')
 file_length = sound_file.getnframes()
 data = sound_file.readframes(file_length)
 sound_file.close()
@@ -32,7 +32,8 @@ while True:
         break
     if not isSilence(windowPosition):
         while not isSilence(windowPosition):
-            listOfLists[i].append(sound[windowPosition:windowPosition+ windowSize+1])
+            for v in sound[windowPosition:windowPosition+windowSize+1]:
+                listOfLists[i].append(v)
             windowPosition += windowSize
         listOfLists.append([]) #empty list
         i += 1
