@@ -13,6 +13,8 @@ LED_BRIGHTNESS = 65      # Set to 0 for darkest and 255 for brightest
 LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
 LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
+full_strip = [i for i in range(LED_COUNT)]
+
 note_to_led_index = {
     'A0': 0, 'A♯0': 1, 'B0': 2,
     'C1': 3, 'C♯1': 4, 'D1': 5, 'D♯1': 6, 'E1': 7, 'F1': 8, 'F♯1': 9, 'G1': 10, 'G♯1': 11, 'A1': 12, 'A♯1': 13, 'B1': 14,
@@ -35,9 +37,9 @@ def colorWipeAll(strip, color, wait_ms=50):
 
 def setColorByIndices(strip, indices, color=Color(0, 128, 0), wait_ms=50):
     for index in indices:
-        if index < 0 or index >= strip.numPixels():
+        if index < 30 or index >= strip.numPixels()+30:
             continue
-        strip.setPixelColor(index, color)
+        strip.setPixelColor(index-30, color)
         
     strip.show()
     time.sleep(wait_ms/1000.0)
@@ -60,7 +62,8 @@ def on_disconnect(client, userdata, rc):
 def on_message(client, userdata, message):
     
     # reset the strip
-    setColorByIndices(strip, full_strip, Color(0,0,0), 10)
+    colorWipeAll(strip, Color(0,0,0), 10)
+    # setColorByIndices(strip, full_strip, Color(0,0,0), 200)
     input = str(message.payload.decode('utf-8'))
     print('Received message: "' + input + '" on topic "' + message.topic)
 
@@ -89,15 +92,12 @@ if __name__ == '__main__':
     client.connect_async('test.mosquitto.org')
     # client.connect("mqtt.eclipse.org")
 
-    # 3. call one of the loop*() functions to maintain network traffic flow with the broker.
-    client.loop_start()
-
     # Create NeoPixel object with appropriate configuration.
     strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
     # Intialize the library (must be called once before other functions).
     strip.begin()
     
-    full_strip = [i for i in range(strip.numPixels())]
+    
 
     print ('Press Ctrl-C to quit.')
     if not args.clear:
@@ -111,7 +111,10 @@ if __name__ == '__main__':
         colorWipeAll(strip, Color(0, 0, 255))  # Green wipe
         colorWipeAll(strip, Color(0,0,0), 10)
         print('Ready...')
-            
+        
+        # 3. call one of the loop*() functions to maintain network traffic flow with the broker.
+        client.loop_start()
+        
         while True:
             pass
 
