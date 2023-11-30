@@ -61,12 +61,11 @@ def on_message(client, userdata, message):
     
     # reset the strip
     setColorByIndices(strip, full_strip, Color(0,0,0), 10)
-    
-    print('Received message: "' + str(message.payload) + '" on topic "' +
-            message.topic + '" with QoS ' + str(message.qos))
+    input = str(message.payload.decode('utf-8'))
+    print('Received message: "' + input + '" on topic "' + message.topic)
 
     # Split the input string into individual notes, strip spaces, and capitalize them
-    notes = [note.strip().upper() for note in str(message.payload).split()]
+    notes = [note.strip().upper() for note in input.split()]
 
     # Optionally, print the list of notes for confirmation
     print("Current list of notes:", notes)
