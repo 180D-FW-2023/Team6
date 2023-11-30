@@ -65,12 +65,26 @@ while True:
     #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
     #times = librosa.times_like(f0)
     D = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
-    mask = (D[:, -3:-1] > -26).all(1)
+    mask = (D[:, -3:-1] > -10).all(1)
     blank = -80
     newD = np.full_like(D, blank)
     newD[mask] = D[mask]
     newS=librosa.db_to_amplitude(newD)
-    '''
+
+    pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
+    #print(pitches[np.where(magnitudes>0)])
+    #print(magnitudes[np.where(magnitudes>0)])
+    pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
+    if len(pitches_final) > 0:
+        notes = librosa.hz_to_note(pitches_final)
+        notes = list(OrderedDict.fromkeys(notes))
+    else:
+        notes = ""
+    print(pitches_final)
+    print(notes)
+    l = " ".join(notes)
+    print(l)
+
     fig, ax = plt.subplots()
 
     img = librosa.display.specshow(librosa.amplitude_to_db(newS,ref=np.max),y_axis='log', x_axis='time', ax=ax)
@@ -83,22 +97,11 @@ while True:
 
     fig.colorbar(img, ax=ax, format="%+2.0f dB")
     plt.show()
-    '''
-    pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
-    #print(pitches[np.where(magnitudes>0)])
-    #print(magnitudes[np.where(magnitudes>0)])
-    pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
-    if len(pitches_final) > 0:
-        notes = librosa.hz_to_note(pitches_final)
-        notes = list(OrderedDict.fromkeys(notes))
-    else:
-        notes = ""
-    print(pitches_final)
-    print(notes)
-
+    
+    
         #print("loop")
         #print(p)
-    client.publish('ece180d/test', str(notes), qos=1)
+    client.publish('your_topic', l, qos=1)
     i = i + 1
 
 client.loop_stop()
