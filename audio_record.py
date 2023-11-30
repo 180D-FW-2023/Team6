@@ -5,6 +5,6 @@ import numpy as np
 fs = 44100  # Sample rate
 seconds = 0.3 # Duration of recording
 
-myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1, dtype=np.int16)
+myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
 sd.wait()  # Wait until recording is finished
 write('test.wav', fs, myrecording)  # Save as WAV file 
