@@ -80,10 +80,11 @@ while True:
         notes = list(OrderedDict.fromkeys(notes))
     else:
         notes = ""
-    print(pitches_final)
-    print(notes)
+    #print(pitches_final)
+    #print(notes)
     l = " ".join(notes)
-    print(l)
+    m = l + " " + str(i)
+    print(m)
     '''
     fig, ax = plt.subplots()
 
@@ -101,7 +102,7 @@ while True:
     
         #print("loop")
         #print(p)
-    client.publish('your_topic', l, qos=1)
+    client.publish('your_topic', notes[1], qos=1)
     i = i + 1
 
 client.loop_stop()
