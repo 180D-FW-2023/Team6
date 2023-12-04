@@ -83,8 +83,14 @@ while True:
     #print(pitches_final)
     #print(notes)
     l = " ".join(notes)
+    first_or_None = ""
+    if len(notes) > 0:
+        first_or_None = notes[0]
+    else:
+        first_or_None = ""
     m = l + " " + str(i)
-    print(m)
+    #print(m)
+    print(first_or_None)
     '''
     fig, ax = plt.subplots()
 
@@ -102,7 +108,7 @@ while True:
     
         #print("loop")
         #print(p)
-    client.publish('your_topic', notes[1], qos=1)
+    client.publish('your_topic', first_or_None, qos=1)
     i = i + 1
 
 client.loop_stop()
