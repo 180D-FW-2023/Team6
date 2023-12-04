@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import paho.mqtt.client as mqtt
 import numpy as np
 
-fs = 32000  # Sample rate
+fs = 44100  # Sample rate
 seconds = 0.2 # Duration of recording
 record = 1 #whether or not to record
 
@@ -24,7 +24,7 @@ S = np.abs(librosa.stft(y))
 #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
 #times = librosa.times_like(f0)
 D = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
-mask = (D[:, -10:-1] > -20).all(1)
+mask = (D[:, -10:-1] > -21).all(1)
 blank = -80
 newD = np.full_like(D, blank)
 newD[mask] = D[mask]
