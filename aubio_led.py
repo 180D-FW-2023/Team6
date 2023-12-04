@@ -78,24 +78,12 @@ if __name__ == '__main__':
 
     try:
         while True:
+            # Read from stdin
             input_line = sys.stdin.readline().strip()
-            if not input_line:
-                continue  # If the line is empty, skip it
-
-            try:
-                # Parse the input line to extract the frequency and note
-                parts = input_line.split()
-                if len(parts) >= 2:
-                    frequency = float(parts[0])
-                    note_str = parts[1]
-                    note = frequency_to_note(frequency)
-                    led_index = note_to_led(note)
-                    if led_index is not None:
-                        setColorByIndices(strip, [led_index], wait_ms=200)
-                else:
-                    print(f"Invalid input line format: {input_line}")
-            except ValueError as e:
-                print(f"Error processing line: {input_line} with error {e}")
+            if input_line:
+                # Process the input and update LEDs
+                input_line = input_line.strip()
+                frequency_to_note(input_line)
 
     except KeyboardInterrupt:
         if args.clear:
