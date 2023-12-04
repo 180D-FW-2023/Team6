@@ -2,6 +2,7 @@ import time
 from rpi_ws281x import *
 import argparse
 import sys
+import math
 
 # LED strip configuration:
 LED_COUNT      = 15     # Number of LED pixels.
@@ -16,13 +17,14 @@ LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 full_strip = [i for i in range(LED_COUNT)]
 
 def frequency_to_note(frequency):
+#    print("INPUT FREQ: ", frequency)
     # Constants for the formula
     A4 = 440
     A4_INDEX = 49
 
     # Calculate the number of half steps away from A4
     n = round(12 * math.log2(frequency/A4)) + A4_INDEX
-
+    print("index: ", n)
     return n
 
 def colorWipeAll(strip, color, wait_ms=50):
@@ -77,13 +79,28 @@ if __name__ == '__main__':
         print('Use "-c" argument to clear LEDs on exit')
 
     try:
+        print ('INITIALIZING: Color wipe animations.')
+        colorWipeAll(strip, Color(255, 0, 0))  # Red wipe
+        colorWipeAll(strip, Color(0, 255, 0))  # Blue wipe
+        colorWipeAll(strip, Color(0, 0, 255))  # Green wipe
+        colorWipeAll(strip, Color(0,0,0), 10)
+        print('Ready...')
+        prev = 0
         while True:
             # Read from stdin
-            input_line = sys.stdin.readline().strip()
+            input_line = sys.stdin.readline()
+  #          print("INPUTLINE: ", input_line)
+
             if input_line:
                 # Process the input and update LEDs
-                input_line = input_line.strip()
-                frequency_to_note(input_line)
+                input_line = input_line.split()
+                freq = float(input_line[-1])
+                if freq > 0:
+                    index = frequency_to_note(freq)
+                    if index != prev:
+                        setColorByIndices(strip, [prev], Color(0,0,0),wait_ms=10)
+                        setColorByIndices(strip, [index], wait_ms=10)
+                        prev = index
 
     except KeyboardInterrupt:
         if args.clear:
