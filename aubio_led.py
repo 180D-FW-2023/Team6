@@ -4,6 +4,8 @@ import argparse
 import sys
 import math
 from collections import Counter
+import paho.mqtt.client as mqtt
+
 # LED strip configuration:
 LED_COUNT      = 15     # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (18 uses PWM!).
@@ -30,6 +32,7 @@ note_to_led_index = {
 
 index_to_note = {v: k for k, v in note_to_led_index.items()}
 
+################# FREQUENCY TO INDEX #####################
 
 def frequency_to_note(frequency):
 #    print("INPUT FREQ: ", frequency)
@@ -42,6 +45,9 @@ def frequency_to_note(frequency):
     
 #    print("index: ", n, "; notes: ", index_to_note.get(n, "err") , "; freq: ", frequency)
     return n
+
+
+################ LED CODE #####################
 
 def colorWipeAll(strip, color, wait_ms=50):
     """Wipe color across display a pixel at a time."""
@@ -60,25 +66,45 @@ def setColorByIndices(strip, indices, color=Color(0, 128, 0), wait_ms=50):
     strip.show()
     time.sleep(wait_ms/1000.0)
 
+################## MQTT SETUP #####################
+
+# 0. define callbacks - functions that run when events happen.
+# The callback for when the client receives a CONNACK response from the server.
+def on_connect(client, userdata, flags, rc):
+    print("Connection returned result: "+str(rc))
+    # Subscribing in on_connect() means that if we lose the connection and
+    # reconnect then subscriptions will be renewed.
+    # client.subscribe("ece180d/test")
+
+# The callback of the client when it disconnects.
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print('Unexpected Disconnect')
+    else:
+        print('Expected Disconnect')
+
 # The default message callback.
-# (you can create separate callbacks per subscribed topic)
+# (won't be used if only publishing, but can still exist)
 def on_message(client, userdata, message):
+    print('Received message: "' + str(message.payload) + '" on topic "' +
+            message.topic + '" with QoS ' + str(message.qos))
     
-    # reset the strip
-    colorWipeAll(strip, Color(0,0,0), 10)
-    # setColorByIndices(strip, full_strip, Color(0,0,0), 200)
-    input = str(message.payload.decode('utf-8'))
-    print('Received message: "' + input + '" on topic "' + message.topic)
+# 1. create a client instance.
+client = mqtt.Client()
 
-    # Split the input string into individual notes, strip spaces, and capitalize them
-    notes = [note.strip().upper() for note in input.split()]
+# add additional client options (security, certifications, etc.)
+# many default options should be good to start off.
+# add callbacks to client.
+client.on_connect = on_connect
+client.on_disconnect = on_disconnect
+client.on_message = on_message
 
-    # Optionally, print the list of notes for confirmation
-    print("Current list of notes:", notes)
-    
-    setColorByIndices(strip, [note_to_led_index[note] for note in notes],wait_ms=200)
+# 2. connect to a broker using one of the connect*() functions.
+client.connect_async('test.mosquitto.org')
 
-# Main program logic:
+
+############### Main program logic: #################
+
 if __name__ == '__main__':
     # Process arguments
     parser = argparse.ArgumentParser()
@@ -108,6 +134,7 @@ if __name__ == '__main__':
         colorWipeAll(strip, Color(0, 0, 255))  # Green wipe
         colorWipeAll(strip, Color(0,0,0), 10)
         print('Ready...')
+        client.loop_start()
         while True:
             # Read from stdin
             input_line = sys.stdin.readline()
@@ -121,6 +148,7 @@ if __name__ == '__main__':
                     past_samples[pos] = index
                     count = Counter(past_samples)
                     if count[index] > thres and index != prev_note:
+                        client.publish('your_topic', index_to_note[index], qos=1)
                         setColorByIndices(strip, [prev_note], Color(0,0,0),wait_ms=10)
                         setColorByIndices(strip, [index], wait_ms=10)
                         prev_note = index
@@ -129,3 +157,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         if args.clear:
             colorWipeAll(strip, Color(0,0,0), 10)
+        client.loop_stop()
+        client.disconnect()
