@@ -77,6 +77,12 @@ if __name__ == '__main__':
     print('Press Ctrl-C to quit.')
     if not args.clear:
         print('Use "-c" argument to clear LEDs on exit')
+        
+    cap = 10
+    thres = 6
+    pos = 0
+    prev = [-1 for i in range(cap)]
+    
 
     try:
         print ('INITIALIZING: Color wipe animations.')
@@ -85,11 +91,9 @@ if __name__ == '__main__':
         colorWipeAll(strip, Color(0, 0, 255))  # Green wipe
         colorWipeAll(strip, Color(0,0,0), 10)
         print('Ready...')
-        prev = 0
         while True:
             # Read from stdin
             input_line = sys.stdin.readline()
-  #          print("INPUTLINE: ", input_line)
 
             if input_line:
                 # Process the input and update LEDs
@@ -97,10 +101,12 @@ if __name__ == '__main__':
                 freq = float(input_line[-1])
                 if freq > 0:
                     index = frequency_to_note(freq)
-                    if index != prev:
-                        setColorByIndices(strip, [prev], Color(0,0,0),wait_ms=10)
+                    prev[pos] = index
+                    count = Counter(prev)
+                    if count[index] > thres:
+                        setColorByIndices(strip, [prev], Color(0,0,0),wait_ms=200)
                         setColorByIndices(strip, [index], wait_ms=10)
-                        prev = index
+                    pos = (pos+1)%cap
 
     except KeyboardInterrupt:
         if args.clear:
