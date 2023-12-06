@@ -3,7 +3,7 @@ from rpi_ws281x import *
 import argparse
 import sys
 import math
-
+from collections import Counter
 # LED strip configuration:
 LED_COUNT      = 15     # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (18 uses PWM!).
@@ -28,6 +28,9 @@ note_to_led_index = {
     'C8': 87
 }
 
+index_to_note = {v: k for k, v in note_to_led_index.items()}
+
+
 def frequency_to_note(frequency):
 #    print("INPUT FREQ: ", frequency)
     # Constants for the formula
@@ -36,7 +39,8 @@ def frequency_to_note(frequency):
 
     # Calculate the number of half steps away from A4
     n = round(12 * math.log2(frequency/A4)) + A4_INDEX
-    print("index: ", n)
+    
+#    print("index: ", n, "; notes: ", index_to_note.get(n, "err") , "; freq: ", frequency)
     return n
 
 def colorWipeAll(strip, color, wait_ms=50):
@@ -117,7 +121,7 @@ if __name__ == '__main__':
                     past_samples[pos] = index
                     count = Counter(past_samples)
                     if count[index] > thres and index != prev_note:
-                        setColorByIndices(strip, [past_samples], Color(0,0,0),wait_ms=200)
+                        setColorByIndices(strip, [prev_note], Color(0,0,0),wait_ms=10)
                         setColorByIndices(strip, [index], wait_ms=10)
                         prev_note = index
                     pos = (pos+1)%cap
