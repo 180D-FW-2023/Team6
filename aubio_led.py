@@ -41,8 +41,8 @@ def frequency_to_note(frequency):
     A4_INDEX = 49
 
     # Calculate the number of half steps away from A4
-    n = round(12 * math.log2(frequency/A4)) + A4_INDEX
-    
+    n = round(12 * math.log2(frequency/A4)) + A4_INDEX - 1
+
 #    print("index: ", n, "; notes: ", index_to_note.get(n, "err") , "; freq: ", frequency)
     return n
 
@@ -148,7 +148,7 @@ if __name__ == '__main__':
                     past_samples[pos] = index
                     count = Counter(past_samples)
                     if count[index] > thres and index != prev_note:
-                        client.publish('your_topic', index_to_note[index], qos=1)
+                        client.publish('your_topic', index_to_note.get(index, "OOR") , qos=1)
                         setColorByIndices(strip, [prev_note], Color(0,0,0),wait_ms=10)
                         setColorByIndices(strip, [index], wait_ms=10)
                         prev_note = index
