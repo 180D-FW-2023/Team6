@@ -1,3 +1,4 @@
+#import libraries
 import sounddevice as sd
 from scipy.io.wavfile import write
 from scipy.io import wavfile
