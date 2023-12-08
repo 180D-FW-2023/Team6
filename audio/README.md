@@ -6,6 +6,8 @@ aubio_led : led programming file integrated with aubio
 
 aubio_test : testing aubio python library
 
+librosa_full : librosa implementation with MQTT
+
 librosa_test : testing librosa python library
 
 output.wav : file used in incoming audio buffer
