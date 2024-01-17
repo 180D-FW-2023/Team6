@@ -47,10 +47,13 @@ client.loop_start()
 # 6. use disconnect() to disconnect from the broker.
 
 fs = 44100  # Sample rate
-seconds = 0.2 # Duration of recording
+seconds = 0.1 # Duration of recording
 record = 1 #whether or not to record
 i = 0
+prev_l = ""
+onsets = np.array([])
 while True:
+    #record audio buffer
     if (record == 1):
         myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
         sd.wait()  # Wait until recording is finished
@@ -58,20 +61,24 @@ while True:
 
 
     sr, data = wavfile.read('output.wav')
+
+    #filter audio buffer
+
     #y, sr = librosa.load('output.wav',sr=None)
     y = np.asarray(data).astype(float)
     #print(y.shape)
-    S = np.abs(librosa.stft(y))
+    
 
     #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
     #times = librosa.times_like(f0)
-    D = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
-    mask = (D[:, -10:-1] > -21).all(1)
+    oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
+    mask = (oldD[:, -10:-1] > -21).all(1)
     blank = -80
-    newD = np.full_like(D, blank)
-    newD[mask] = D[mask]
+    newD = np.full_like(oldD, blank)
+    newD[mask] = oldD[mask]
     newS=librosa.db_to_amplitude(newD)
 
+    #get pitches from filtered audio
     pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
     #print(pitches[np.where(magnitudes>0)])
     #print(magnitudes[np.where(magnitudes>0)])
@@ -90,7 +97,7 @@ while True:
     else:
         first_or_None = ""
     m = l + " " + str(i)
-    #print(m)
+    print(m)
     print(first_or_None)
     '''
     fig, ax = plt.subplots()
@@ -109,7 +116,17 @@ while True:
     
         #print("loop")
         #print(p)
-    client.publish('your_topic', first_or_None, qos=1)
+    client.publish('your_topic', l, qos=1)
+
+    #get onset of notes and calculate tempo
+    cur_onsets = librosa.onset.onset_detect(y=y, sr=sr, units='time')
+    if l != prev_l:
+        np.append(onsets, i * seconds)
+    np.append(onsets, cur_onsets)
+    tempo = 60 / (onsets[-1] - onsets[-2])
+    client.publish('your_topic', tempo, qos=1)
+    
+    prev_l = l
     i = i + 1
 
 client.loop_stop()
