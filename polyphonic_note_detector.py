@@ -26,8 +26,8 @@ filename = 'recorded_audio.wav'
 note_threshold = 5_000.0    # 120   # 50_000.0   #  3_000.0
 
 # Parameters
-sample_rate  = 44100                     # Sampling Frequency
-fft_len      = 22050   # 2048                      # Length of the FFT window
+sample_rate  = 44100                   # Sampling Frequency
+fft_len      = 2048   # 2048                      # Length of the FFT window
 overlap      = 0.5                       # Hop overlap percentage between windows
 hop_length   = int(fft_len*(1-overlap))  # Number of samples between successive frames
 
