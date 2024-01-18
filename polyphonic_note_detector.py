@@ -220,11 +220,11 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
 
     ## Uncomment to show the graph of the result of the 
     ## Harmonic Product Spectrum. 
-    # fig, ax = plt.subplots()
-    # yr_tmp = afHps[np.arange(k_min, afHps.shape[0])]
-    # xr_tmp = (np.arange(k_min, afHps.shape[0]) + k_min) / (X.shape[0] - 1) * f_s / 2
-    # ax.plot(xr_tmp, yr_tmp)
-    # plt.show()
+    fig, ax = plt.subplots()
+    yr_tmp = afHps[np.arange(k_min, afHps.shape[0])]
+    xr_tmp = (np.arange(k_min, afHps.shape[0]) + k_min) / (X.shape[0] - 1) * f_s / 2
+    ax.plot(xr_tmp, yr_tmp)
+    plt.show()
 
     # Turns 2 level list into a one level list.
     freqs_out_tmp = []
