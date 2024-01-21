@@ -125,8 +125,8 @@ while True:
     if l != prev_l:
         np.append(onsets, i * seconds)
     np.append(onsets, cur_onsets)
-    tempo = 60 / (onsets[-1] - onsets[-2])
-    client.publish('your_topic', tempo, qos=1)
+    #tempo = 60 / (onsets[-1] - onsets[-2])
+    #client.publish('your_topic', tempo, qos=1)
     
     prev_l = l
     i = i + 1
