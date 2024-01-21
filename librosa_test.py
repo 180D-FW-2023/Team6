@@ -11,9 +11,15 @@ import numpy as np
 
 fs = 44100  # Sample rate
 seconds = 0.1 # Duration of recording
-record = 0 #whether or not to record
+record = 1 #whether or not to record
 
+fs = 44100  # Sample rate
+seconds = 0.1 # Duration of recording
 
+if record == 1:
+    myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
+    sd.wait()  # Wait until recording is finished
+    write('test.wav', fs, myrecording)  # Save as WAV file 
 
 sr, data = wavfile.read('test.wav')
 #y, sr = librosa.load('output.wav',sr=None)
