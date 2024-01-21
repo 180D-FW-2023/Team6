@@ -116,7 +116,7 @@ while True:
     
         #print("loop")
         #print(p)
-    if max_noise < 2:
+    if max_noise < 3:
         l = ""
     client.publish('your_topic', l, qos=1)
 
