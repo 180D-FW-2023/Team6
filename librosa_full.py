@@ -117,7 +117,7 @@ while True:
         #print(p)
     print("max_noise" + str(max_noise))
     #print(first_or_None)
-    if max_noise < 60:
+    if max_noise < 100:
         l = ""
     print(l)
     m = l + " " + str(i)
