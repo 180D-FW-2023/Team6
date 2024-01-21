@@ -23,8 +23,10 @@ y = np.asarray(data).astype(float)
 
 #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
 #times = librosa.times_like(f0)
+max_noise = np.max(np.abs(librosa.stft(y)))
+print(max_noise)
 oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
-mask = (oldD[:, -10:-1] > -20).all(1)
+mask = (oldD[:, -5:-1] > -21).all(1)
 blank = -80
 newD = np.full_like(oldD, blank)
 newD[mask] = oldD[mask]
@@ -43,6 +45,19 @@ print(pitches_final)
 print(notes)
 l = " ".join(notes)
 print(l)
+
+fig, ax = plt.subplots()
+
+img = librosa.display.specshow(np.abs(librosa.stft(y)),y_axis='linear', x_axis='time', ax=ax)
+
+ax.set_title('Power spectrogram')
+
+fig.colorbar(img, ax=ax, format="%+2.0f dB")
+
+ax.set_title('Power spectrogram')
+
+fig.colorbar(img, ax=ax, format="%+2.0f dB")
+plt.show()
 
 fig, ax = plt.subplots()
 

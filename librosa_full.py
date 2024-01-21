@@ -68,7 +68,7 @@ while True:
     y = np.asarray(data).astype(float)
     #print(y.shape)
     
-
+    max_noise = np.max(np.abs(librosa.stft(y)))
     #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
     #times = librosa.times_like(f0)
     oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
@@ -116,6 +116,8 @@ while True:
     
         #print("loop")
         #print(p)
+    if max_noise < 2:
+        l = ""
     client.publish('your_topic', l, qos=1)
 
     #get onset of notes and calculate tempo
