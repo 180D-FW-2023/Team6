@@ -96,9 +96,8 @@ while True:
         first_or_None = notes[0]
     else:
         first_or_None = ""
-    m = l + " " + str(i)
-    print(m)
-    print(first_or_None)
+    
+
     '''
     fig, ax = plt.subplots()
 
@@ -117,8 +116,12 @@ while True:
         #print("loop")
         #print(p)
     print("max_noise" + str(max_noise))
-    if max_noise < 270:
+    #print(first_or_None)
+    if max_noise < 60:
         l = ""
+    print(l)
+    m = l + " " + str(i)
+    print(m)
     client.publish('your_topic', l, qos=1)
 
     #get onset of notes and calculate tempo
