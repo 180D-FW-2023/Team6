@@ -1,3 +1,10 @@
 rpi_ws281x==5.0.0
 adafruit-circuitpython-neopixel
 adafruit-blinka
+sounddevice
+scipy
+librosa
+numpy
+matplotlib
+paho-mqtt
+
