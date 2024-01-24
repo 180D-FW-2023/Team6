@@ -89,7 +89,7 @@ while True:
     else:
         notes = ""
     #print(pitches_final)
-    #print(notes)
+    print(notes)
     l = " ".join(notes)
     first_or_None = ""
     if len(notes) > 0:

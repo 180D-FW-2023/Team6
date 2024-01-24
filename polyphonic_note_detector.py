@@ -12,6 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import wave
 import math
+import sounddevice as sd
+from scipy.io.wavfile import write
 
 ## Configuration
 
@@ -26,8 +28,8 @@ filename = 'recorded_audio.wav'
 note_threshold = 5_000.0    # 120   # 50_000.0   #  3_000.0
 
 # Parameters
-sample_rate  = 44100                   # Sampling Frequency
-fft_len      = 2048   # 2048                      # Length of the FFT window
+sample_rate  = 22050                     # Sampling Frequency
+fft_len      = 22050   # 2048            # Length of the FFT window
 overlap      = 0.5                       # Hop overlap percentage between windows
 hop_length   = int(fft_len*(1-overlap))  # Number of samples between successive frames
 
@@ -253,61 +255,69 @@ def to_str_f4(value):
     # Returns a string with a float without decimals.
     return "{0:.4f}".format(value)
 
+def record_audio(filename, duration, sample_rate):
+    # Record audio
+    recording = sd.rec(int(sample_rate * duration), samplerate=sample_rate, channels=1, dtype='int16')
+    sd.wait()
+
+    # Save the recorded audio to a WAV file
+    write(filename, sample_rate, recording)
 
 def main():
     print("\nPolyphonic note detector\n")
-    
+    recording_duration = 0.05  # in seconds
     ordered_note_freq = get_all_notes_freq()
     # print(ordered_note_freq)
+    while True:
+        record_audio(filename, sample_rate, recording_duration)   
+        sample_rate_file, input_buffer = read_wav_file(path, filename)
+        buffer_chunks = divide_buffer_into_non_overlapping_chunks(input_buffer, fft_len)
+        # The buffer chunk at n seconds:
 
-    sample_rate_file, input_buffer = read_wav_file(path, filename)
-    buffer_chunks = divide_buffer_into_non_overlapping_chunks(input_buffer, fft_len)
-    # The buffer chunk at n seconds:
+        count = 0
+        
+        ## Uncomment to process a single chunk os a limited number os sequential chunks. 
+        # for chunk in buffer_chunks[5: 6]:
+        for chunk in buffer_chunks[0: 60]:
+            print("\n...Chunk: ", str(count))
+                    
+            fft_freq, fft_res, fft_res_len = getFFT(chunk, len(chunk))
+            fft_res = remove_dc_offset(fft_res)
 
-    count = 0
-    
-    ## Uncomment to process a single chunk os a limited number os sequential chunks. 
-    # for chunk in buffer_chunks[5: 6]:
-    for chunk in buffer_chunks[0: 60]:
-        print("\n...Chunk: ", str(count))
-                
-        fft_freq, fft_res, fft_res_len = getFFT(chunk, len(chunk))
-        fft_res = remove_dc_offset(fft_res)
+            # Calculate Root Mean Square of the signal buffer, as a scale factor to the threshold.
+            buffer_rms = np.sqrt(np.mean(chunk**2))
 
-        # Calculate Root Mean Square of the signal buffer, as a scale factor to the threshold.
-        buffer_rms = np.sqrt(np.mean(chunk**2))
+            all_freqs = PitchSpectralHps(fft_res, fft_freq, sample_rate_file, buffer_rms)
+            # print("all_freqs ")
+            # print(all_freqs)
 
-        all_freqs = PitchSpectralHps(fft_res, fft_freq, sample_rate_file, buffer_rms)
-        # print("all_freqs ")
-        # print(all_freqs)
-
-        for freq in all_freqs:
-            note_name = find_nearest_note(ordered_note_freq, freq[0])
-            print("=> freq: " + to_str_f(freq[0]) + " Hz  value: " + to_str_f(freq[1]) + " note_name: " + note_name )
-
-
-        ## Uncomment to print the arrays.
-        # print("\nfft_freq: ")
-        # print(fft_freq)
-        # print("\nfft_freq_len: " + str(len(fft_freq)))
-
-        # print("\nfft_res: ")
-        # print(fft_res)
-
-        # print("\nfft_res_len: ")
-        # print(fft_res_len)
+            for freq in all_freqs:
+                note_name = find_nearest_note(ordered_note_freq, freq[0])
+                print("=> freq: " + to_str_f(freq[0]) + " Hz  value: " + to_str_f(freq[1]) + " note_name: " + note_name )
 
 
-        ## Uncomment to show the graph of the result of the FFT with the
-        ## correct frequencies in the legend. 
-        # N = fft_res_len
-        # fft_freq_interval = fft_freq[: N // 4]
-        # fft_res_interval = fft_res[: N // 4]
-        # fig, ax = plt.subplots()
-        # ax.plot(fft_freq_interval, 2.0/N * np.abs(fft_res_interval))
-        # plt.show()
+            ## Uncomment to print the arrays.
+            # print("\nfft_freq: ")
+            # print(fft_freq)
+            # print("\nfft_freq_len: " + str(len(fft_freq)))
 
-        count += 1
+            # print("\nfft_res: ")
+            # print(fft_res)
+
+            # print("\nfft_res_len: ")
+            # print(fft_res_len)
+
+
+            ## Uncomment to show the graph of the result of the FFT with the
+            ## correct frequencies in the legend. 
+            # N = fft_res_len
+            # fft_freq_interval = fft_freq[: N // 4]
+            # fft_res_interval = fft_res[: N // 4]
+            # fig, ax = plt.subplots()
+            # ax.plot(fft_freq_interval, 2.0/N * np.abs(fft_res_interval))
+            # plt.show()
+
+            count += 1
 
 if __name__ == "__main__":
     main()

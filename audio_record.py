@@ -2,7 +2,7 @@ import sounddevice as sd
 from scipy.io.wavfile import write
 import numpy as np
 
-fs = 44100  # Sample rate
+fs = 22050  # Sample rate
 seconds = 0.1 # Duration of recording
 
 myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
