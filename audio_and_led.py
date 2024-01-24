@@ -3,17 +3,16 @@ import sounddevice as sd
 from scipy.io.wavfile import write
 from scipy.io import wavfile
 import librosa
-import numpy as np
+
 from collections import OrderedDict
-np.set_printoptions(threshold=np.inf)
 import matplotlib.pyplot as plt
-import paho.mqtt.client as mqtt
 import numpy as np
+np.set_printoptions(threshold=np.inf)
 
 import time
 from rpi_ws281x import *
-import argparse
 import paho.mqtt.client as mqtt
+
 # 0. define callbacks - functions that run when events happen.
 # The callback for when the client receives a CONNACK response from the server.
 
@@ -26,6 +25,8 @@ LED_DMA        = 10      # DMA channel to use for generating a signal (try 10)
 LED_BRIGHTNESS = 65      # Set to 0 for darkest and 255 for brightest
 LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
 LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
+
+################ LED CODE #####################
 
 full_strip = [i for i in range(LED_COUNT)]
 
@@ -45,8 +46,16 @@ note_to_led_index = {
     'C8': 87
 }
 
+def rainbow(strip, wait_ms=20, iterations=1):
+    """Draw rainbow that fades across all pixels at once."""
+    for j in range(256*iterations):
+        for i in range(strip.numPixels()):
+            strip.setPixelColor(i, wheel((i+j) & 255))
+        strip.show()
+        time.sleep(wait_ms/1000.0)
+
 def colorWipeAll(strip, color, wait_ms=50):
-    """Wipe color across display a pixel at a time."""
+    """ Wipe color across display a pixel at a time. """
     for i in range(strip.numPixels()):
         strip.setPixelColor(i, color)
         strip.show()
@@ -54,6 +63,7 @@ def colorWipeAll(strip, color, wait_ms=50):
 
 
 def setColorByIndices(strip, index, color=Color(0, 128, 0), wait_ms=50):
+    """ Sets pixel at indices then show all changes at once """
     print("Received index: ", index)
     if not (index < 30 or index >= strip.numPixels()+30):
         print("Setting Pixel: ", index-30)
@@ -63,14 +73,73 @@ def setColorByIndices(strip, index, color=Color(0, 128, 0), wait_ms=50):
         print("Turned off everything else")
         strip.setPixelColor(index-30, color)
     strip.show()
+
+################ LIBROSA SETUP #####################
+
 fs = 32000  # Sample rate
 seconds = 0.1 # Duration of recording
 record = 1 #whether or not to record
 i = 0
 prev_l = ""
 onsets = np.array([])
+# target_notes = []
+target_notes = ['E3', 'F♯3', 'G♯3', 'A3', 'B3', 'C♯4', 'D♯4', 'E4']
+played_notes = []
 
-colorWipeAll(strip, Color(255, 0, 0))
+################## MQTT SETUP #####################
+
+# 0. define callbacks - functions that run when events happen.
+# The callback for when the client receives a CONNACK response from the server.
+def on_connect(client, userdata, flags, rc):
+    print("Connection returned result: "+str(rc))
+    # Subscribing in on_connect() means that if we lose the connection and
+    # reconnect then subscriptions will be renewed.
+    client.subscribe("scale_lesson")
+
+# The callback of the client when it disconnects.
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print('Unexpected Disconnect')
+    else:
+        print('Expected Disconnect')
+
+def on_message(client, userdata, msg):
+    topic = msg.topic
+    print("topic: ",topic)
+    m_decode=str(msg.payload.decode("utf-8","ignore"))
+    # print("data Received type",type(m_decode))
+    # print("data Received",m_decode)
+    # print("Converting from Json to Object")
+    m_in = json.loads(m_decode) #decode json data
+    print(type(m_in))
+    print("Command = ",m_in["command"])
+    if m_in["command"] == "scale":
+        target_notes = m_in["notes"]
+        print(notes)
+        setColorByIndices(strip, target_notes[0], color=Color(0,0,128),wait_ms=50)
+    
+# 1. create a client instance.
+client = mqtt.Client()
+
+# add additional client options (security, certifications, etc.)
+# many default options should be good to start off.
+# add callbacks to client.
+client.on_connect = on_connect
+client.on_disconnect = on_disconnect
+client.on_message = on_message
+
+# 2. connect to a broker using one of the connect*() functions.
+client.connect_async('test.mosquitto.org')
+client.loop_start()
+
+
+################## MAIN LOOP #####################
+
+print("Initializing LED strip")
+rainbow(strip, wait_ms=20, iterations=1)
+colorWipeAll(strip, Color(0,0,0), wait_ms=50)
+
+
 while True:
     #record audio buffer
     if (record == 1):
@@ -83,13 +152,9 @@ while True:
 
     #filter audio buffer
 
-    #y, sr = librosa.load('output.wav',sr=None)
     y = np.asarray(data).astype(float)
-    #print(y.shape)
     
     max_noise = np.max(np.abs(librosa.stft(y)))
-    #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
-    #times = librosa.times_like(f0)
     oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
     mask = (oldD[:, -10:-1] > -21).all(1)
     blank = -80
@@ -99,16 +164,13 @@ while True:
 
     #get pitches from filtered audio
     pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
-    #print(pitches[np.where(magnitudes>0)])
-    #print(magnitudes[np.where(magnitudes>0)])
     pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
     if len(pitches_final) > 0:
         notes = librosa.hz_to_note(pitches_final)
         notes = list(OrderedDict.fromkeys(notes))
     else:
         notes = ""
-    #print(pitches_final)
-    #print(notes)
+    
     l = " ".join(notes)
     first_or_None = ""
     if len(notes) > 0:
@@ -125,60 +187,32 @@ while True:
     prev_l = l
 
     notes = [note.strip().upper() for note in l.split()]
-
-    # print(notes)
     print("Curr Note: ", notes[0] if notes else None)
+    top_note = notes[0] if notes else None
 
-    if notes:
-        setColorByIndices(strip, note_to_led_index[notes[0]],wait_ms=200)
-
-
-    i = i + 1
-
-
-
-
-
-
-
-
-# # The default message callback.
-# # (you can create separate callbacks per subscribed topic)
-# def on_message(client, userdata, message):
-    
-#     # reset the strip
-#     colorWipeAll(strip, Color(0,0,0), 10)
-#     # setColorByIndices(strip, full_strip, Color(0,0,0), 200)
-#     input = str(message.payload.decode('utf-8'))
-#     print('Received message: "' + input + '" on topic "' + message.topic)
-
-#     # Split the input string into individual notes, strip spaces, and capitalize them
-#     notes = [note.strip().upper() for note in input.split()]
-
-#     # Optionally, print the list of notes for confirmation
-#     print("Current list of notes:", notes)
-    
-#     setColorByIndices(strip, [note_to_led_index[note] for note in notes],wait_ms=200)
-
-#     # Create NeoPixel object with appropriate configuration.
-#     strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
-#     # Intialize the library (must be called once before other functions).
-#     strip.begin()
-    
-
-    # try:
-
-    #     print ('INITIALIZING: Color wipe animations.')
-    #     colorWipeAll(strip, Color(255, 0, 0))  # Red wipe
-    #     colorWipeAll(strip, Color(0, 255, 0))  # Blue wipe
-    #     colorWipeAll(strip, Color(0, 0, 255))  # Green wipe
-    #     colorWipeAll(strip, Color(0,0,0), 10)
-    #     print('Ready...')
-        
-        
-    #     while True:
-    #         pass
-
-    # except KeyboardInterrupt:
-    #     colorWipeAll(strip, Color(0,0,0), 10)
+    if top_note:
+        if target_notes and len(played_notes) < len(target_notes):
+            if top_note == target_notes[len(played_notes)]:
+                print("Correct!")
+                setColorByIndices(strip, note_to_led_index[top_note], color=Color(0,128,0),wait_ms=500)
+            else:
+                print("Wrong!")
+                setColorByIndices(strip, note_to_led_index[top_note], color=Color(128,0,0),wait_ms=500)
+            
+            played_notes.append(notes[0])
+            
+            if len(played_notes) == len(target_notes):
+                print("Finished!")
+                rainbow(strip, wait_ms=20, iterations=1)
+                # reset everything
+                colorWipeAll(strip, Color(0,0,0), wait_ms=50)
+                played_notes = []
+                target_notes = []
+            else:
+                # sets next note to blue
+                setColorByIndices(strip, target_notes[len(played_notes)], color=Color(0,0,128),wait_ms=50)
+            
+        else:
+            # default note playing - shows white light
+            setColorByIndices(strip, note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
 
