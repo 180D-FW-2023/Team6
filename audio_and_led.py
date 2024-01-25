@@ -103,19 +103,35 @@ def on_disconnect(client, userdata, rc):
     else:
         print('Expected Disconnect')
 
-def on_message(client, userdata, msg):
-    topic = msg.topic
-    print("topic: ",topic)
-    m_decode=str(msg.payload.decode("utf-8","ignore"))
-    # print("data Received type",type(m_decode))
-    # print("data Received",m_decode)
-    # print("Converting from Json to Object")
-    m_in = json.loads(m_decode) #decode json data
-    print(type(m_in))
-    print("Command = ",m_in["command"])
-    if m_in["command"] == "scale":
-        target_notes = m_in["notes"]
-        print(notes)
+def on_message(client, userdata, message):
+    # topic = msg.topic
+    # print("topic: ",topic)
+    # m_decode=str(msg.payload.decode("utf-8","ignore"))
+    # # print("data Received type",type(m_decode))
+    # # print("data Received",m_decode)
+    # # print("Converting from Json to Object")
+    # m_in = json.loads(m_decode) #decode json data
+    # print(type(m_in))
+    # print("Command = ",m_in["command"])
+    # if m_in["command"] == "scale":
+    #     target_notes = m_in["notes"]
+    #     print(notes)
+    #     setColorByIndices(strip, target_notes[0], color=Color(0,0,128),wait_ms=50)
+    
+    # color sequence to indicate that a new training has been received
+    colorWipeAll(strip, Color(128,0,0), wait_ms=50)
+    colorWipeAll(strip, Color(0,128,0), wait_ms=50)
+    colorWipeAll(strip, Color(0,0,128), wait_ms=50)
+    
+    topic = str(message.topic)
+    scale = str(message.payload)
+    print('Received message: "' + str(message.payload) + '" on topic "' +
+            message.topic + '" with QoS ' + str(message.qos))
+    
+    if topic == "scale_lesson":
+        target_notes = scale.split()
+        print(target_notes)
+        # set first color to blue
         setColorByIndices(strip, target_notes[0], color=Color(0,0,128),wait_ms=50)
     
 # 1. create a client instance.
@@ -192,6 +208,7 @@ while True:
 
     if top_note:
         if target_notes and len(played_notes) < len(target_notes):
+            data = []
             if top_note == target_notes[len(played_notes)]:
                 print("Correct!")
                 setColorByIndices(strip, note_to_led_index[top_note], color=Color(0,128,0),wait_ms=500)
