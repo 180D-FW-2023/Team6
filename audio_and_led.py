@@ -115,21 +115,8 @@ def on_disconnect(client, userdata, rc):
         print('Expected Disconnect')
 
 def on_message(client, userdata, message):
-    # topic = msg.topic
-    # print("topic: ",topic)
-    # m_decode=str(msg.payload.decode("utf-8","ignore"))
-    # # print("data Received type",type(m_decode))
-    # # print("data Received",m_decode)
-    # # print("Converting from Json to Object")
-    # m_in = json.loads(m_decode) #decode json data
-    # print(type(m_in))
-    # print("Command = ",m_in["command"])
-    # if m_in["command"] == "scale":
-    #     target_notes = m_in["notes"]
-    #     print(notes)
-    #     setColorByIndices(strip, target_notes[0], color=Color(0,0,128),wait_ms=50)
+    global target_notes
     
-    # color sequence to indicate that a new training has been received
     colorWipeAll(strip, Color(128,0,0), wait_ms=50)
     colorWipeAll(strip, Color(0,128,0), wait_ms=50)
     colorWipeAll(strip, Color(0,0,128), wait_ms=50)
@@ -144,7 +131,7 @@ def on_message(client, userdata, message):
         played_notes = []
         print(target_notes)
         # set first color to blue
-        setColorByIndices(strip, target_notes[0], color=Color(0,0,128),wait_ms=50)
+        setColorByIndices(strip, note_to_led_index[target_notes[0]], color=Color(0,0,128),wait_ms=50)
     
 # 1. create a client instance.
 client = mqtt.Client()
@@ -167,6 +154,7 @@ print("Initializing LED strip")
 rainbow(strip, wait_ms=20, iterations=1)
 colorWipeAll(strip, Color(0,0,0), wait_ms=50)
 
+print("FIRST !!!!!" , target_notes)
 
 while True:
     #record audio buffer
@@ -210,7 +198,7 @@ while True:
     #print(first_or_None)
     if max_noise < 100:
         l = ""
-    print(l)
+    # print(l)
     
     prev_l = l
 
@@ -218,15 +206,17 @@ while True:
     top_note = notes[0] if notes else None
 
     if top_note:
+        print("TARGET ", target_notes)
+        print("RECORDED ", played_notes)
         print("Curr Note: ", top_note)
         
         if target_notes and len(played_notes) < len(target_notes):
             if top_note == target_notes[len(played_notes)]:
                 print("Correct!")
-                setColorByIndices(strip, note_to_led_index[top_note], color=Color(0,128,0),wait_ms=500)
+                setColorByIndices(strip, note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
             else:
                 print("Wrong!")
-                setColorByIndices(strip, note_to_led_index[top_note], color=Color(128,0,0),wait_ms=500)
+                setColorByIndices(strip, note_to_led_index[top_note], color=Color(128,0,0),wait_ms=1000)
             
             played_notes.append(notes[0])
             
@@ -239,7 +229,7 @@ while True:
                 target_notes = []
             else:
                 # sets next note to blue
-                setColorByIndices(strip, target_notes[len(played_notes)], color=Color(0,0,128),wait_ms=50)
+                setColorByIndices(strip, note_to_led_index[target_notes[len(played_notes)]], color=Color(0,0,128),wait_ms=50)
             
         else:
             # default note playing - shows white light
