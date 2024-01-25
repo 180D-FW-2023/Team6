@@ -27,6 +27,15 @@ else:
     st.write("### Last 10 Notes Played:")
     st.write("Press 'Refresh' to load notes.")
 
+# Button to choose a lesson
+if st.button('Choose Lesson'):
+    st.session_state['choose_lesson'] = True
+
+# Dropdown menu for selecting a lesson
+if st.session_state.get('choose_lesson', False):
+    lesson = st.selectbox("Select a Lesson", ['A', 'B', 'C', 'D'])
+    st.write(f"You have selected lesson {lesson}")
+
 # Main loop to update the last note displayed
 while True:
     # Fetch the latest note
