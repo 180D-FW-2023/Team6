@@ -93,8 +93,8 @@ record = 1 #whether or not to record
 i = 0
 prev_l = ""
 onsets = np.array([])
-# target_notes = []
-target_notes = ['E3', 'F♯3', 'G♯3', 'A3', 'B3', 'C♯4', 'D♯4', 'E4']
+target_notes = []
+# target_notes = ['E3', 'F♯3', 'G♯3', 'A3', 'B3', 'C♯4', 'D♯4', 'E4']
 played_notes = []
 
 ################## MQTT SETUP #####################
@@ -135,12 +135,13 @@ def on_message(client, userdata, message):
     colorWipeAll(strip, Color(0,0,128), wait_ms=50)
     
     topic = str(message.topic)
-    scale = str(message.payload)
+    scale = str(message.payload.decode("utf-8","ignore"))
     print('Received message: "' + str(message.payload) + '" on topic "' +
             message.topic + '" with QoS ' + str(message.qos))
     
     if topic == "scale_lesson":
         target_notes = scale.split()
+        played_notes = []
         print(target_notes)
         # set first color to blue
         setColorByIndices(strip, target_notes[0], color=Color(0,0,128),wait_ms=50)
@@ -214,12 +215,12 @@ while True:
     prev_l = l
 
     notes = [note.strip().upper() for note in l.split()]
-    print("Curr Note: ", notes[0] if notes else None)
     top_note = notes[0] if notes else None
 
     if top_note:
+        print("Curr Note: ", top_note)
+        
         if target_notes and len(played_notes) < len(target_notes):
-            data = []
             if top_note == target_notes[len(played_notes)]:
                 print("Correct!")
                 setColorByIndices(strip, note_to_led_index[top_note], color=Color(0,128,0),wait_ms=500)
@@ -242,5 +243,6 @@ while True:
             
         else:
             # default note playing - shows white light
+            print("Default")
             setColorByIndices(strip, note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
 
