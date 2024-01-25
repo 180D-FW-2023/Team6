@@ -255,9 +255,9 @@ def to_str_f4(value):
     # Returns a string with a float without decimals.
     return "{0:.4f}".format(value)
 
-def record_audio(filename, duration, sample_rate):
+def record_audio(filename, duration, sample_rate=sample_rate):
     # Record audio
-    recording = sd.rec(int(sample_rate * duration), samplerate=sample_rate, channels=1, dtype='int16')
+    recording = sd.rec(int(sample_rate * duration), sample_rate, channels=1, dtype='int16')
     sd.wait()
 
     # Save the recorded audio to a WAV file
@@ -265,7 +265,7 @@ def record_audio(filename, duration, sample_rate):
 
 def main():
     print("\nPolyphonic note detector\n")
-    recording_duration = 0.05  # in seconds
+    recording_duration = 0.1  # in seconds
     ordered_note_freq = get_all_notes_freq()
     # print(ordered_note_freq)
     while True:
