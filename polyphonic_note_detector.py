@@ -23,7 +23,7 @@ path     = ""
 # filename = '18474__pitx__c4.wav'
 # filename = 'c_major_guitar.wav'
 # filename = 'c_major_classical_guitar_E2_C3_E3_G3_C4_E4.wav'
-filename = 'recorded_audio.wav'
+file_name = 'recorded_audio.wav'
 
 note_threshold = 5_000.0    # 120   # 50_000.0   #  3_000.0
 
@@ -222,11 +222,11 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
 
     ## Uncomment to show the graph of the result of the 
     ## Harmonic Product Spectrum. 
-    fig, ax = plt.subplots()
-    yr_tmp = afHps[np.arange(k_min, afHps.shape[0])]
-    xr_tmp = (np.arange(k_min, afHps.shape[0]) + k_min) / (X.shape[0] - 1) * f_s / 2
-    ax.plot(xr_tmp, yr_tmp)
-    plt.show()
+    #fig, ax = plt.subplots()
+    #yr_tmp = afHps[np.arange(k_min, afHps.shape[0])]
+    #xr_tmp = (np.arange(k_min, afHps.shape[0]) + k_min) / (X.shape[0] - 1) * f_s / 2
+    #ax.plot(xr_tmp, yr_tmp)
+    #plt.show()
 
     # Turns 2 level list into a one level list.
     freqs_out_tmp = []
@@ -236,7 +236,7 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
     return freqs_out_tmp
 
 def note_threshold_scaled_by_RMS(buffer_rms):
-    note_threshold = 1000.0 * (4 / 0.090) * buffer_rms
+    note_threshold = 1000.0 * (4 / 0.090) * buffer_rms / 2
     return note_threshold
 
 def normalize(arr):
@@ -255,22 +255,23 @@ def to_str_f4(value):
     # Returns a string with a float without decimals.
     return "{0:.4f}".format(value)
 
-def record_audio(filename, duration, sample_rate=sample_rate):
+def record_audio(filename, duration, samplerate):
     # Record audio
-    recording = sd.rec(int(sample_rate * duration), sample_rate, channels=1, dtype='int16')
+    recording = sd.rec(int(samplerate * duration), samplerate=samplerate, channels=1, dtype='int16')
     sd.wait()
 
     # Save the recorded audio to a WAV file
-    write(filename, sample_rate, recording)
+    write(filename, samplerate, recording)
 
 def main():
     print("\nPolyphonic note detector\n")
-    recording_duration = 0.1  # in seconds
+    recording_duration = 0.05  # in seconds
     ordered_note_freq = get_all_notes_freq()
-    # print(ordered_note_freq)
+    #record_audio(file_name, recording_duration, sample_rate) 
+    print(ordered_note_freq)
     while True:
-        record_audio(filename, sample_rate, recording_duration)   
-        sample_rate_file, input_buffer = read_wav_file(path, filename)
+        record_audio(file_name, recording_duration, sample_rate)   
+        sample_rate_file, input_buffer = read_wav_file(path, file_name)
         buffer_chunks = divide_buffer_into_non_overlapping_chunks(input_buffer, fft_len)
         # The buffer chunk at n seconds:
 
