@@ -140,7 +140,11 @@ def test_mode(top_note):
     
     if len(played_notes) == len(target_notes):
         print("Finished!")
-        client.publish('team6/test_results', str(played_notes), qos=1)
+        result = ''
+        for i in played_notes:
+            result += i + ' '
+        print(result)
+        client.publish('team6/test/results', result, qos=1)
         mode = 0
         led.start_sequence()
         played_notes = []
