@@ -1,36 +1,28 @@
 <template>
-  <div id="app">
-    <h1>MQTT Data Display</h1>
-    <div v-if="mqttData">
-      <h2>Received MQTT Data:</h2>
-      <pre>{{ mqttData }}</pre>
-    </div>
-    <div v-else>
-      <p>No data received yet...</p>
-    </div>
-  </div>
+  <v-app>
+    <v-app-bar app>
+      <v-toolbar-title>Virtual Piano Teacher</v-toolbar-title>
+
+      <v-spacer></v-spacer>
+
+      <v-btn text to="/">Home</v-btn>
+      <v-btn text to="/lessons">Lessons</v-btn>
+      <v-btn text to="/testing">Testing</v-btn>
+    </v-app-bar>
+
+    <v-main>
+      <RouterView />
+    </v-main>
+  </v-app>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue';
-import io from 'socket.io-client';
+<script setup>
+import { RouterLink, RouterView } from 'vue-router';
+import { VApp, VAppBar, VToolbarTitle, VSpacer, VBtn, VMain } from 'vuetify/components';
 
-export default {
-  setup() {
-    const mqttData = ref(null);
-    const socket = io('http://127.0.0.1:5000');
-
-    onMounted(() => {
-      socket.on('mqtt_data', (data) => {
-        mqttData.value = `Topic: ${data.topic}, Payload: ${data.payload}`;
-      });
-    });
-
-    return { mqttData };
-  }
-};
+import HelloWorld from './components/HelloWorld.vue';
 </script>
 
-<style>
-/* Add your styles here */
+<style scoped>
+/* Add any additional styling here */
 </style>

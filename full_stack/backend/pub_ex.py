@@ -12,9 +12,9 @@ def on_publish(client, userdata, result):
     print("Data published")
 
 # MQTT setup
-broker = "broker.emqx.io"
+broker = "test.mosquitto.org"
 port = 1883
-topic = "/flask/mqtt"  # Same topic as subscribed by your Flask app
+topic = "lessons_mqtt"  # Same topic as subscribed by your Flask app
 
 # Create a client instance
 client = mqtt.Client()
