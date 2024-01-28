@@ -10,8 +10,8 @@ app.config['MQTT_USERNAME'] = ''  # Set this when verifying username and passwor
 app.config['MQTT_PASSWORD'] = ''  # Set this when verifying username and password
 app.config['MQTT_KEEPALIVE'] = 5  # Set KeepAlive time in seconds
 app.config['MQTT_TLS_ENABLED'] = False  # Set True if your broker supports TLS
-lesson_topic = 'lessons_mqtt'
-testing_topic = 'testing_mqtt'
+lesson_topic = 'team6/lessons/results'
+testing_topic = 'team6/test/results'
 
 mqtt_client = Mqtt(app)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for all domains

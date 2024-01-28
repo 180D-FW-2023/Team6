@@ -53,7 +53,7 @@
   
       const selectLesson = (lessonKey) => {
         const lessonValue = lessons[lessonKey];
-        socket.emit('publish_mqtt', { topic: 'scale_lesson', payload: lessonValue });
+        socket.emit('publish_mqtt', { topic: 'team6/test', payload: lessonValue });
         console.log(`Selected lesson: ${lessonKey} - ${lessonValue}`);
         lessonsDropdown.value = false; // Optionally close the dropdown after a selection
       };

@@ -4,8 +4,8 @@
   
         <!-- First Button Group: Chords and Scales -->
         <v-btn-toggle v-model="selectedOption" mandatory>
-          <v-btn value="Chords">Chords</v-btn>
-          <v-btn value="Scales">Scales</v-btn>
+          <v-btn value="Chord">Chords</v-btn>
+          <v-btn value="Scale">Scales</v-btn>
         </v-btn-toggle>
   
         <!-- Second Button Group: Major and Minor -->
@@ -48,20 +48,63 @@
   </template>
   
   <script setup>
-  import { ref } from 'vue';
+  import { ref, onMounted} from 'vue';
+  import io from 'socket.io-client';
   import { VApp, VContainer, VBtn, VBtnToggle, VSelect, VDialog, VCard, VCardTitle, VCardText, VCardActions, VSpacer } from 'vuetify/components';
-  const selectedOption = ref('Chords');
+  const selectedOption = ref('Chord');
 const selectedType = ref('Major');
 const selectedLetter = ref('A');
 const dialog = ref(false);
 const selectedAction = ref('');
+const mqttData = ref(null);
+      const lessonsDropdown = ref(false);
+      const socket = io('http://127.0.0.1:5000');
 
-const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+const scales = {
+  // Major Scales
+  'C Major': 'C4 D4 E4 F4 G4 A4 B4 C5',
+  'D Major': 'D3 E3 F#3 G3 A3 B3 C#4 D4',
+  'E Major': 'E3 F#3 G#3 A3 B3 C#4 D#4 E4',
+  'F Major': 'F3 G3 A3 A#3 C4 D4 E4 F4',
+  'G Major': 'G3 A3 B3 C4 D4 E4 F#4 G4',
+  'A Major': 'A3 B3 C#4 D4 E4 F#4 G#4 A4',
+  'B Major': 'B3 C#4 D#4 E4 F#4 G#4 A#4 B4',
 
-const openDialog = (action) => {
+  // Natural Minor Scales
+  'A Minor': 'A3 B3 C4 D4 E4 F4 G4 A4',
+  'B Minor': 'B3 C#4 D4 E4 F#4 G4 A4 B4',
+  'C Minor': 'C3 D3 D#3 F3 G3 G#3 A#3 C4',
+  'D Minor': 'D3 E3 F3 G3 A3 A#3 C4 D4',
+  'E Minor': 'E3 F#3 G3 A3 B3 C4 D4 E4',
+  'F Minor': 'F3 G3 G#3 A#3 C4 C#4 D#4 F4',
+  'G Minor': 'G3 A3 A#3 C4 D4 D#4 F4 G4'
+};
+
+onMounted(() => {
+        socket.on('mqtt_data', (data) => {
+          mqttData.value = `Topic: ${data.topic}, Payload: ${data.payload}`;
+        });
+      });
+
+      const openDialog = (action) => {
   selectedAction.value = action;
   dialog.value = true;
+
+  // Construct the message to send
+  const messageType = selectedType.value + ' ' + selectedOption.value;
+  const message = selectedLetter.value + ' ' + messageType;
+  const key = message.replace(' Scale', '');
+
+// Find the scale in the dictionary
+    const scale = scales[key];
+
+  // Determine the topic based on the action
+  const topic = action === 'Test' ? 'team6/test' : 'team6/lesson';
+  // Emit the message on the socket
+  socket.emit('publish_mqtt', { topic: topic, payload: scale });
 };
+
   </script>
   
   <style scoped>
