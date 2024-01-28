@@ -47,7 +47,7 @@ client.loop_start()
 # 6. use disconnect() to disconnect from the broker.
 
 fs = 44100  # Sample rate
-seconds = 0.05 # Duration of recording
+seconds = 0.1 # Duration of recording
 record = 1 #whether or not to record
 i = 0
 prev_l = ""
@@ -126,11 +126,16 @@ while True:
 
     #get onset of notes and calculate tempo
     cur_onsets = librosa.onset.onset_detect(y=y, sr=sr, units='time')
+    if (cur_onsets != []):
+        detected = True
+    else:
+        detected = False
+    print(detected)
     if l != prev_l:
         np.append(onsets, i * seconds)
     np.append(onsets, cur_onsets)
     #tempo = 60 / (onsets[-1] - onsets[-2])
-    #client.publish('your_topic', tempo, qos=1)
+    client.publish('your_topic', detected, qos=1)
     
     prev_l = l
     i = i + 1

@@ -11,7 +11,7 @@ import numpy as np
 
 fs = 44100  # Sample rate
 seconds = 0.1 # Duration of recording
-record = 1 #whether or not to record
+record = 0 #whether or not to record
 
 fs = 44100  # Sample rate
 seconds = 0.1 # Duration of recording
@@ -51,7 +51,13 @@ print(pitches_final)
 print(notes)
 l = " ".join(notes)
 print(l)
-
+cur_onsets = librosa.onset.onset_detect(y=y, sr=sr, units='time')
+print (cur_onsets)
+if (cur_onsets.size > 0):
+    detected = True
+else:
+    detected = False
+print(detected)
 fig, ax = plt.subplots()
 
 img = librosa.display.specshow(np.abs(librosa.stft(y)),y_axis='linear', x_axis='time', ax=ax)
