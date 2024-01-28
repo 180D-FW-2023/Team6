@@ -13,7 +13,8 @@ LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
 ################ LED CODE #####################
 
-full_strip = [i for i in range(LED_COUNT)]
+recently_on = []
+offset = 38
 
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
 # Intialize the library (must be called once before other functions).
@@ -45,7 +46,7 @@ note_to_led_index_web = {
 
 def start_sequence():
     rainbow(wait_ms=20, iterations=1)
-    colorWipeAll(Color(0,0,0), wait_ms=50)
+    colorWipeAll(wait_ms=50)
 
 def wheel(pos):
     """Generate rainbow colors across 0-255 positions."""
@@ -66,7 +67,7 @@ def rainbow(wait_ms=20, iterations=1):
         strip.show()
         time.sleep(wait_ms/1000.0)
 
-def colorWipeAll(color, wait_ms=50):
+def colorWipeAll(color=Color(0,0,0), wait_ms=50):
     """ Wipe color across display a pixel at a time. """
     for i in range(strip.numPixels()):
         strip.setPixelColor(i, color)
@@ -74,12 +75,16 @@ def colorWipeAll(color, wait_ms=50):
         time.sleep(wait_ms/1000.0)
 
 
-def setColorByIndices(index, color=Color(0, 128, 0), wait_ms=50):
-    """ Sets pixel at indices then show all changes at once """
+def showOneColorOnly(index, color=Color(128, 128, 128), wait_ms=50):
     print("Received index: ", index)
-    if not (index < 30 or index >= strip.numPixels()+30):
-        print("Setting Pixel: ", index-30)
-        for i in range(15):
+    if not (index < offset or index >= LED_COUNT+offset):
+        print("Setting Pixel: ", index-offset)
+        for i in range(LED_COUNT):
             strip.setPixelColor(i, Color(0,0,0))
-        strip.setPixelColor(index-30, color)
+        strip.setPixelColor(index-offset, color)
+    strip.show()
+    
+def setColorByIndex(index, color=(0,128,0)):
+    if not (index < offset or index >= LED_COUNT+offset):
+        strip.setPixelColor(index-offset, color)
     strip.show()

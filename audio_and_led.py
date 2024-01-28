@@ -56,7 +56,7 @@ def on_message(client, userdata, message):
     led.colorWipeAll(Color(128,0,0), wait_ms=50)
     led.colorWipeAll(Color(0,128,0), wait_ms=50)
     led.colorWipeAll(Color(0,0,128), wait_ms=50)
-    led.colorWipeAll(Color(0,0,0), wait_ms=50)
+    led.colorWipeAll(wait_ms=50)
     
     topic = str(message.topic)
     scale = str(message.payload.decode("utf-8","ignore"))
@@ -71,7 +71,7 @@ def on_message(client, userdata, message):
         case "team6/lesson":
             mode = 1
             # set first color to blue
-            led.setColorByIndices(strip, note_to_led_index_web[target_notes[0]], color=Color(0,0,128),wait_ms=50)
+            led.showOneColorOnly(led.note_to_led_index_web[target_notes[0]], color=Color(0,0,128))
         case "team6/test":
             mode = 2
         case _:
@@ -98,31 +98,29 @@ client.loop_start()
 print("Initializing LED strip")
 led.start_sequence()
 
-def learn_mode(top_note):
+def lesson_mode(top_note):
     global mode, target_notes, played_notes
-    pass
-    # print("TARGET ", target_notes)
-    # print("RECORDED ", played_notes)
     
-    # if top_note == target_notes[len(played_notes)]:
-    #     print("Correct!")
-    #     led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
-    #     led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
-    # else:
-    #     print("Wrong!")
-    #     led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,0,0),wait_ms=1000)
+    print("TARGET ", target_notes)
+    print("RECORDED ", played_notes)
     
-    # played_notes.append(notes[0])
+    if top_note == target_notes[len(played_notes)]:
+        print("Correct!")
+        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,128,0))
+        played_notes.append(notes[0])
+    else:
+        print("Wrong!")
     
-    # if len(played_notes) == len(target_notes):
-    #     print("Finished!")
-    #     mode = 0
-    #     led.start_sequence()
-    #     played_notes = []
-    #     target_notes = []
-    # else:
-    #     # sets next note to blue
-    #     led.setColorByIndices(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128),wait_ms=50)
+    
+    if len(played_notes) == len(target_notes):
+        print("Finished!")
+        mode = 0
+        led.start_sequence()
+        played_notes = []
+        target_notes = []
+    else:
+        # sets next note to blue
+        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128))
 
 
 def test_mode(top_note):
@@ -133,13 +131,12 @@ def test_mode(top_note):
     
     if top_note == target_notes[len(played_notes)]:
         print("Correct!")
-        led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
-        led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
+        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,128,0))
     else:
         print("Wrong!")
-        led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,0,0),wait_ms=1000)
+        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(128,0,0))
     
-    played_notes.append(notes[0])
+    played_notes.append(top_note)
     
     if len(played_notes) == len(target_notes):
         print("Finished!")
@@ -148,9 +145,7 @@ def test_mode(top_note):
         led.start_sequence()
         played_notes = []
         target_notes = []
-    else:
-        # sets next note to blue
-        led.setColorByIndices(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128),wait_ms=50)
+
 
 try:
     while True:
@@ -217,10 +212,10 @@ try:
                 case _:
                     # default note playing - shows white light
                     print("----- Default mode -----")
-                    led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+                    led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
 
 except KeyboardInterrupt:
     led.colorWipeAll(Color(128,0,0), 50)
-    led.colorWipeAll(Color(0,0,0), 10)
+    led.colorWipeAll(Color(0,0,0), 50)
     client.disconnect
     client.loop_stop()
