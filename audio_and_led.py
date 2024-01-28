@@ -71,7 +71,7 @@ def on_message(client, userdata, message):
         case "team6/lesson":
             mode = 1
             # set first color to blue
-            led.showOneColorOnly(led.note_to_led_index_web[target_notes[0]], color=Color(0,0,128))
+            led.showOneColorOnly(led.note_to_led_index[target_notes[0]], color=Color(0,0,128))
         case "team6/test":
             mode = 2
         case _:
@@ -106,7 +106,7 @@ def lesson_mode(top_note):
     
     if top_note == target_notes[len(played_notes)]:
         print("Correct!")
-        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,128,0))
+        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
         played_notes.append(notes[0])
     else:
         print("Wrong!")
@@ -120,7 +120,7 @@ def lesson_mode(top_note):
         target_notes = []
     else:
         # sets next note to blue
-        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128))
+        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,0,128))
 
 
 def test_mode(top_note):
@@ -131,16 +131,20 @@ def test_mode(top_note):
     
     if top_note == target_notes[len(played_notes)]:
         print("Correct!")
-        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,128,0))
+        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
     else:
         print("Wrong!")
-        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(128,0,0))
+        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(128,0,0))
     
     played_notes.append(top_note)
     
     if len(played_notes) == len(target_notes):
         print("Finished!")
-        client.publish('team6/test_results', str(played_notes), qos=1)
+        result = ''
+        for i in played_notes:
+            result += i + ' '
+        print(result)
+        client.publish('team6/test/results', result, qos=1)
         mode = 0
         led.start_sequence()
         played_notes = []
