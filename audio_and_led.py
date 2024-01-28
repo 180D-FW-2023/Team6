@@ -92,8 +92,6 @@ def setColorByIndices(strip, index, color=Color(0, 128, 0), wait_ms=50):
         print("Setting Pixel: ", index-30)
         for i in range(15):
             strip.setPixelColor(i, Color(0,0,0))
-
-        print("Turned off everything else")
         strip.setPixelColor(index-30, color)
     strip.show()
 
@@ -219,13 +217,12 @@ while True:
     top_note = notes[0] if notes else None
 
     if top_note:
-        print("TARGET ", target_notes)
-        print("RECORDED ", played_notes)
-        print("TARGET ", target_notes)
-        print("RECORDED ", played_notes)
+        
         print("Curr Note: ", top_note)
         
         if target_notes and len(played_notes) < len(target_notes):
+            print("TARGET ", target_notes)
+            print("RECORDED ", played_notes)
             if top_note == target_notes[len(played_notes)]:
                 print("Correct!")
                 setColorByIndices(strip, note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
