@@ -14,16 +14,23 @@ import paho.mqtt.client as mqtt
 import led_control as led
 from rpi_ws281x import Color
 
+'''
+modes:
+0 = default
+1 = lesson
+2 = test
+'''
+
+target_notes = []
+played_notes = []
+mode = 0 
+
 ################ LIBROSA SETUP #####################
 
 fs = 32000  # Sample rate
 seconds = 0.1 # Duration of recording
 record = 1 #whether or not to record
-i = 0
 prev_l = ""
-onsets = np.array([])
-target_notes = []
-played_notes = []
 
 ################## MQTT SETUP #####################
 
@@ -33,8 +40,8 @@ def on_connect(client, userdata, flags, rc):
     print("Connection returned result: "+str(rc))
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("lesson")
-    client.subscribe("test")
+    client.subscribe("team6/lesson")
+    client.subscribe("team6/test")
 
 # The callback of the client when it disconnects.
 def on_disconnect(client, userdata, rc):
@@ -44,23 +51,30 @@ def on_disconnect(client, userdata, rc):
         print('Expected Disconnect')
 
 def on_message(client, userdata, message):
-    global target_notes
+    global target_notes, mode
     
     led.colorWipeAll(Color(128,0,0), wait_ms=50)
     led.colorWipeAll(Color(0,128,0), wait_ms=50)
     led.colorWipeAll(Color(0,0,128), wait_ms=50)
+    led.colorWipeAll(Color(0,0,0), wait_ms=50)
     
     topic = str(message.topic)
     scale = str(message.payload.decode("utf-8","ignore"))
     print('Received message: "' + str(message.payload) + '" on topic "' +
             message.topic + '" with QoS ' + str(message.qos))
     
-    if topic == "scale_lesson":
-        target_notes = scale.split()
-        played_notes = []
-        print(target_notes)
-        # set first color to blue
-        setColorByIndices(strip, note_to_led_index_web[target_notes[0]], color=Color(0,0,128),wait_ms=50)
+    target_notes = scale.split()
+    played_notes = []
+    print(target_notes)
+    
+    match topic:
+        case "team6/lesson":
+            mode = 1
+            # set first color to blue
+            led.setColorByIndices(strip, note_to_led_index_web[target_notes[0]], color=Color(0,0,128),wait_ms=50)
+        case "team6/test":
+            mode = 2
+            
     
 # 1. create a client instance.
 client = mqtt.Client()
@@ -81,6 +95,59 @@ client.loop_start()
 
 print("Initializing LED strip")
 led.start_sequence()
+
+def learn_mode(top_note):
+    global mode, target_notes, played_notes
+    pass
+    # print("TARGET ", target_notes)
+    # print("RECORDED ", played_notes)
+    
+    # if top_note == target_notes[len(played_notes)]:
+    #     print("Correct!")
+    #     led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
+    #     led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
+    # else:
+    #     print("Wrong!")
+    #     led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,0,0),wait_ms=1000)
+    
+    # played_notes.append(notes[0])
+    
+    # if len(played_notes) == len(target_notes):
+    #     print("Finished!")
+    #     mode = 0
+    #     led.start_sequence()
+    #     played_notes = []
+    #     target_notes = []
+    # else:
+    #     # sets next note to blue
+    #     led.setColorByIndices(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128),wait_ms=50)
+
+
+def test_mode(top_note):
+    global mode, target_notes, played_notes
+    
+    print("TARGET ", target_notes)
+    print("RECORDED ", played_notes)
+    
+    if top_note == target_notes[len(played_notes)]:
+        print("Correct!")
+        led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
+        led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
+    else:
+        print("Wrong!")
+        led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,0,0),wait_ms=1000)
+    
+    played_notes.append(notes[0])
+    
+    if len(played_notes) == len(target_notes):
+        print("Finished!")
+        mode = 0
+        led.start_sequence()
+        played_notes = []
+        target_notes = []
+    else:
+        # sets next note to blue
+        led.setColorByIndices(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128),wait_ms=50)
 
 
 while True:
@@ -135,30 +202,17 @@ while True:
         
         print("Curr Note: ", top_note)
         
-        if target_notes and len(played_notes) < len(target_notes):
-            print("TARGET ", target_notes)
-            print("RECORDED ", played_notes)
-            if top_note == target_notes[len(played_notes)]:
-                print("Correct!")
-                led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
-                led.setColorByIndices(led.note_to_led_index[top_note], color=Color(0,128,0),wait_ms=1000)
-            else:
-                print("Wrong!")
-                led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,0,0),wait_ms=1000)
-            
-            played_notes.append(notes[0])
-            
-            if len(played_notes) == len(target_notes):
-                print("Finished!")
-                led.start_sequence()
-                played_notes = []
-                target_notes = []
-            else:
-                # sets next note to blue
-                led.setColorByIndices(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128),wait_ms=50)
-            
-        else:
-            # default note playing - shows white light
-            print("Default")
-            led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+        match mode:
+            case 1:
+                # lesson mode
+                print("----- Lesson mode -----")
+                lesson_mode(top_note)
+            case 2:
+                # test mode
+                print("----- Test mode -----")
+                test_mode(top_note)
+            case _:
+                # default note playing - shows white light
+                print("----- Default mode -----")
+                led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
 
