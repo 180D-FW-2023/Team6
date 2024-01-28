@@ -74,6 +74,8 @@ def on_message(client, userdata, message):
             led.setColorByIndices(strip, note_to_led_index_web[target_notes[0]], color=Color(0,0,128),wait_ms=50)
         case "team6/test":
             mode = 2
+        case _:
+            mode = 0
             
     
 # 1. create a client instance.
@@ -141,6 +143,7 @@ def test_mode(top_note):
     
     if len(played_notes) == len(target_notes):
         print("Finished!")
+        client.publish('team6/test_results', str(played_notes), qos=1)
         mode = 0
         led.start_sequence()
         played_notes = []
@@ -149,70 +152,75 @@ def test_mode(top_note):
         # sets next note to blue
         led.setColorByIndices(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128),wait_ms=50)
 
+try:
+    while True:
+        #record audio buffer
+        if (record == 1):
+            myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
+            sd.wait()  # Wait until recording is finished
+            write('output.wav', fs, myrecording)  # Save as WAV file 
 
-while True:
-    #record audio buffer
-    if (record == 1):
-        myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
-        sd.wait()  # Wait until recording is finished
-        write('output.wav', fs, myrecording)  # Save as WAV file 
 
+        sr, data = wavfile.read('output.wav')
 
-    sr, data = wavfile.read('output.wav')
+        #filter audio buffer
 
-    #filter audio buffer
+        y = np.asarray(data).astype(float)
+        
+        max_noise = np.max(np.abs(librosa.stft(y)))
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
+        mask = (oldD[:, -10:-1] > -21).all(1)
+        blank = -80
+        newD = np.full_like(oldD, blank)
+        newD[mask] = oldD[mask]
+        newS=librosa.db_to_amplitude(newD)
 
-    y = np.asarray(data).astype(float)
-    
-    max_noise = np.max(np.abs(librosa.stft(y)))
-    oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
-    mask = (oldD[:, -10:-1] > -21).all(1)
-    blank = -80
-    newD = np.full_like(oldD, blank)
-    newD[mask] = oldD[mask]
-    newS=librosa.db_to_amplitude(newD)
-
-    #get pitches from filtered audio
-    pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
-    pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
-    if len(pitches_final) > 0:
-        notes = librosa.hz_to_note(pitches_final)
-        notes = list(OrderedDict.fromkeys(notes))
-    else:
-        notes = ""
-    
-    l = " ".join(notes)
-    first_or_None = ""
-    if len(notes) > 0:
-        first_or_None = notes[0]
-    else:
+        #get pitches from filtered audio
+        pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
+        pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
+        if len(pitches_final) > 0:
+            notes = librosa.hz_to_note(pitches_final)
+            notes = list(OrderedDict.fromkeys(notes))
+        else:
+            notes = ""
+        
+        l = " ".join(notes)
         first_or_None = ""
-    
-    
-    #print(first_or_None)
-    if max_noise < 100:
-        l = ""
-    
-    prev_l = l
-
-    notes = [note.strip().upper() for note in l.split()]
-    top_note = notes[0] if notes else None
-
-    if top_note:
+        if len(notes) > 0:
+            first_or_None = notes[0]
+        else:
+            first_or_None = ""
         
-        print("Curr Note: ", top_note)
         
-        match mode:
-            case 1:
-                # lesson mode
-                print("----- Lesson mode -----")
-                lesson_mode(top_note)
-            case 2:
-                # test mode
-                print("----- Test mode -----")
-                test_mode(top_note)
-            case _:
-                # default note playing - shows white light
-                print("----- Default mode -----")
-                led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+        #print(first_or_None)
+        if max_noise < 100:
+            l = ""
+        
+        prev_l = l
 
+        notes = [note.strip().upper() for note in l.split()]
+        top_note = notes[0] if notes else None
+
+        if top_note:
+            
+            print("Curr Note: ", top_note)
+            
+            match mode:
+                case 1:
+                    # lesson mode
+                    print("----- Lesson mode -----")
+                    lesson_mode(top_note)
+                case 2:
+                    # test mode
+                    print("----- Test mode -----")
+                    test_mode(top_note)
+                case _:
+                    # default note playing - shows white light
+                    print("----- Default mode -----")
+                    led.setColorByIndices(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+
+except KeyboardInterrupt:
+    led.colorWipeAll(Color(128,0,0), 50)
+    led.colorWipeAll(Color(0,0,0), 10)
+    client.disconnect
+    client.loop_stop()
