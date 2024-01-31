@@ -13,6 +13,7 @@ import pyaudio
 import sys
 import numpy as np
 import aubio
+import noisereduce as nr
 
 # initialise pyaudio
 p = pyaudio.PyAudio()
@@ -48,7 +49,7 @@ pitch_o.set_unit("midi")
 pitch_o.set_tolerance(tolerance)
 o = aubio.onset("default", win_s, hop_s, samplerate)
 onsets = []
-max_buffer = [0]
+max_buffer = np.array([0])
 buf_const = 2
 print("*** starting recording")
 while True:
@@ -57,13 +58,14 @@ while True:
         signal = np.fromstring(audiobuffer, dtype=np.float32)
         #print(np.max(signal))
         #s = aubio.source(audiobuffer, samplerate, hop_s)
-        thresh = np.sum(max_buffer[-buf_const:]) / buf_const
-        max_buffer.append(np.max(signal))
+        filtered_signal = nr.reduce_noise(signal, samplerate)
+        thresh = np.sum(max_buffer[-buf_const:]) / len(max_buffer)
+        max_buffer = np.append(max_buffer, np.max(signal))
         max_buffer = max_buffer[-buf_const:]
         pitch = pitch_o(signal)[0]
         confidence = pitch_o.get_confidence()
         note = aubio.midi2note(int(pitch)+1)
-        print("{} / {}".format(note,confidence))
+        #print("{} / {}".format(note,confidence))
         #samples, read = s()
         if (np.max(signal) > thresh):
             if o(signal):
