@@ -50,25 +50,26 @@ pitch_o.set_tolerance(tolerance)
 o = aubio.onset("default", win_s, hop_s, samplerate)
 onsets = []
 max_buffer = np.array([0])
-buf_const = 2
+buf_const = 10
 print("*** starting recording")
 while True:
     try:
         audiobuffer = stream.read(buffer_size)
-        signal = np.fromstring(audiobuffer, dtype=np.float32)
+        signal = np.frombuffer(audiobuffer, dtype=np.float32)
         #print(np.max(signal))
         #s = aubio.source(audiobuffer, samplerate, hop_s)
-        filtered_signal = nr.reduce_noise(signal, samplerate)
+        filtered_signal = nr.reduce_noise(signal, samplerate, thresh_n_mult_nonstationary=2,stationary=False)
         thresh = np.sum(max_buffer[-buf_const:]) / len(max_buffer)
         max_buffer = np.append(max_buffer, np.max(signal))
         max_buffer = max_buffer[-buf_const:]
-        pitch = pitch_o(signal)[0]
+        pitch = pitch_o(filtered_signal)[0]
         confidence = pitch_o.get_confidence()
         note = aubio.midi2note(int(pitch)+1)
         #print("{} / {}".format(note,confidence))
         #samples, read = s()
-        if (np.max(signal) > thresh):
-            if o(signal):
+        if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
+            print("{} / {}".format(np.max(filtered_signal),thresh))
+            if o(filtered_signal):
                 print("%f" % o.get_last_s())
                 onsets.append(o.get_last())
 
