@@ -64,10 +64,14 @@ while True:
         thresh = np.sum(max_buffer[-buf_const:]) / len(max_buffer)
         max_buffer = np.append(max_buffer, np.max(signal))
         max_buffer = max_buffer[-buf_const:]
+
         '''
+        These lines utilize aubio's pitch detection algorithm
+        
         pitch = pitch_o(filtered_signal)[0]
         confidence = pitch_o.get_confidence()
         note = aubio.midi2note(int(pitch)+1)
+        print("{} / {}".format(note,confidence))
         '''
         pitches, magnitudes = librosa.piptrack(S=np.abs(librosa.stft(filtered_signal)), sr=samplerate)
         #print(pitches[np.where(magnitudes>0)])
@@ -90,7 +94,7 @@ while True:
         #samples, read = s()
         #if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
             #print("{} / {}".format(np.max(filtered_signal),thresh))
-            #print("{} / {}".format(note,confidence))
+            
         if (max_noise > 3):
             if o(filtered_signal):
                 print("%f" % o.get_last_s())
