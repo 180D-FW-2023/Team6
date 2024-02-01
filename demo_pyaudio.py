@@ -65,10 +65,10 @@ while True:
         pitch = pitch_o(filtered_signal)[0]
         confidence = pitch_o.get_confidence()
         note = aubio.midi2note(int(pitch)+1)
-        #print("{} / {}".format(note,confidence))
         #samples, read = s()
         if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
-            print("{} / {}".format(np.max(filtered_signal),thresh))
+            #print("{} / {}".format(np.max(filtered_signal),thresh))
+            print("{} / {}".format(note,confidence))
             if o(filtered_signal):
                 print("%f" % o.get_last_s())
                 onsets.append(o.get_last())
