@@ -9,6 +9,9 @@ np.set_printoptions(threshold=np.inf)
 import matplotlib.pyplot as plt
 import paho.mqtt.client as mqtt
 import numpy as np
+import aubio
+import noisereduce as nr
+
 # 0. define callbacks - functions that run when events happen.
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
@@ -47,11 +50,14 @@ client.loop_start()
 # 6. use disconnect() to disconnect from the broker.
 
 fs = 44100  # Sample rate
-seconds = 0.1 # Duration of recording
+seconds = 0.01 # Duration of recording
 record = 1 #whether or not to record
 i = 0
+win_s = 1024 # fft size
+hop_s = 441 # hop size
 prev_l = ""
 onsets = np.array([])
+o = aubio.onset("default", win_s, hop_s, fs)
 while True:
     #record audio buffer
     if (record == 1):
@@ -67,11 +73,12 @@ while True:
     #y, sr = librosa.load('output.wav',sr=None)
     y = np.asarray(data).astype(float)
     #print(y.shape)
-    
+    y = nr.reduce_noise(y, fs, thresh_n_mult_nonstationary=2,stationary=False)
     max_noise = np.max(np.abs(librosa.stft(y)))
     #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
     #times = librosa.times_like(f0)
-    oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
+    oldS = np.abs(librosa.stft(y))
+    oldD = librosa.amplitude_to_db(oldS, ref=np.max)
     mask = (oldD[:, -10:-1] > -21).all(1)
     blank = -80
     newD = np.full_like(oldD, blank)
@@ -79,7 +86,7 @@ while True:
     newS=librosa.db_to_amplitude(newD)
 
     #get pitches from filtered audio
-    pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
+    pitches, magnitudes = librosa.piptrack(S=oldS, sr=sr)
     #print(pitches[np.where(magnitudes>0)])
     #print(magnitudes[np.where(magnitudes>0)])
     pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
@@ -96,7 +103,6 @@ while True:
         first_or_None = notes[0]
     else:
         first_or_None = ""
-    
 
     '''
     fig, ax = plt.subplots()
@@ -117,7 +123,7 @@ while True:
         #print(p)
     print("max_noise" + str(max_noise))
     #print(first_or_None)
-    if max_noise < 100:
+    if max_noise < 3:
         l = ""
     print(l)
     #m = l + " " + str(i)
@@ -125,6 +131,11 @@ while True:
     client.publish('your_topic', l, qos=1)
 
     #get onset of notes and calculate tempo
+
+    if o(np.float32(y)):
+        print("%f" % o.get_last_s())
+        onsets = np.append(onsets, o.get_last())
+    '''
     cur_onsets = librosa.onset.onset_detect(y=y, sr=sr, units='time')
     if (cur_onsets != []):
         detected = True
@@ -136,6 +147,8 @@ while True:
     np.append(onsets, cur_onsets)
     #tempo = 60 / (onsets[-1] - onsets[-2])
     client.publish('your_topic', detected, qos=1)
+    '''
+
     
     prev_l = l
     i = i + 1

@@ -67,13 +67,19 @@ while True:
 
         '''
         These lines utilize aubio's pitch detection algorithm
-        
+
         pitch = pitch_o(filtered_signal)[0]
         confidence = pitch_o.get_confidence()
         note = aubio.midi2note(int(pitch)+1)
         print("{} / {}".format(note,confidence))
         '''
-        pitches, magnitudes = librosa.piptrack(S=np.abs(librosa.stft(filtered_signal)), sr=samplerate)
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(filtered_signal)), ref=np.max)
+        mask = (oldD[:, -10:-1] > -21).all(1)
+        blank = -80
+        newD = np.full_like(oldD, blank)
+        newD[mask] = oldD[mask]
+        newS=librosa.db_to_amplitude(newD)
+        pitches, magnitudes = librosa.piptrack(S=newS, sr=samplerate)
         #print(pitches[np.where(magnitudes>0)])
         #print(magnitudes[np.where(magnitudes>0)])
         pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
@@ -88,7 +94,7 @@ while True:
         max_noise = np.max(np.abs(librosa.stft(filtered_signal)))
         print("max_noise" + str(max_noise))
         #print(first_or_None)
-        if max_noise < 3:
+        if max_noise < 8:
             l = ""
         print(l)
         #samples, read = s()

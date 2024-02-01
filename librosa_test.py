@@ -10,11 +10,9 @@ import paho.mqtt.client as mqtt
 import numpy as np
 
 fs = 44100  # Sample rate
-seconds = 0.1 # Duration of recording
-record = 0 #whether or not to record
+seconds = 0.05 # Duration of recording
+record = 1 #whether or not to record
 
-fs = 44100  # Sample rate
-seconds = 0.1 # Duration of recording
 
 if record == 1:
     myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
@@ -31,7 +29,8 @@ y = np.asarray(data).astype(float)
 #times = librosa.times_like(f0)
 max_noise = np.max(np.abs(librosa.stft(y)))
 print(max_noise)
-oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
+oldS = np.abs(librosa.stft(y))
+oldD = librosa.amplitude_to_db(oldS, ref=np.max)
 mask = (oldD[:, -10:-1] > -21).all(1)
 blank = -80
 newD = np.full_like(oldD, blank)
