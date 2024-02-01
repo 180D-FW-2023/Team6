@@ -84,14 +84,14 @@ while True:
         max_noise = np.max(np.abs(librosa.stft(filtered_signal)))
         print("max_noise" + str(max_noise))
         #print(first_or_None)
-        if max_noise < 100:
+        if max_noise < 3:
             l = ""
         print(l)
         #samples, read = s()
         #if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
             #print("{} / {}".format(np.max(filtered_signal),thresh))
             #print("{} / {}".format(note,confidence))
-        if (max_noise > 100):
+        if (max_noise > 3):
             if o(filtered_signal):
                 print("%f" % o.get_last_s())
                 onsets.append(o.get_last())
