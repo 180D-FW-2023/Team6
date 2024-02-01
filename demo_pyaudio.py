@@ -14,6 +14,8 @@ import sys
 import numpy as np
 import aubio
 import noisereduce as nr
+import librosa
+from collections import OrderedDict
 
 # initialise pyaudio
 p = pyaudio.PyAudio()
@@ -62,13 +64,34 @@ while True:
         thresh = np.sum(max_buffer[-buf_const:]) / len(max_buffer)
         max_buffer = np.append(max_buffer, np.max(signal))
         max_buffer = max_buffer[-buf_const:]
+        '''
         pitch = pitch_o(filtered_signal)[0]
         confidence = pitch_o.get_confidence()
         note = aubio.midi2note(int(pitch)+1)
+        '''
+        pitches, magnitudes = librosa.piptrack(S=np.abs(librosa.stft(filtered_signal)), sr=samplerate)
+        #print(pitches[np.where(magnitudes>0)])
+        #print(magnitudes[np.where(magnitudes>0)])
+        pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
+        if len(pitches_final) > 0:
+            notes = librosa.hz_to_note(pitches_final)
+            notes = list(OrderedDict.fromkeys(notes))
+        else:
+            notes = ""
+        #print(pitches_final)
+        #print(notes)
+        l = " ".join(notes)
+        max_noise = np.max(np.abs(librosa.stft(filtered_signal)))
+        print("max_noise" + str(max_noise))
+        #print(first_or_None)
+        if max_noise < 100:
+            l = ""
+        print(l)
         #samples, read = s()
-        if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
+        #if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
             #print("{} / {}".format(np.max(filtered_signal),thresh))
-            print("{} / {}".format(note,confidence))
+            #print("{} / {}".format(note,confidence))
+        if (max_noise > 100):
             if o(filtered_signal):
                 print("%f" % o.get_last_s())
                 onsets.append(o.get_last())
