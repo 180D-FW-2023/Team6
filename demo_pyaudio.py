@@ -256,14 +256,18 @@ while True:
         signal = np.frombuffer(audiobuffer, dtype=np.float32)
         #print(np.max(signal))
         #s = aubio.source(audiobuffer, samplerate, hop_s)
-        thresh = np.sum(max_buffer[-buf_const:]) / buf_const
-        max_buffer.append(np.max(signal))
+        filtered_signal = nr.reduce_noise(signal, samplerate, thresh_n_mult_nonstationary=2,stationary=False)
+        thresh = np.sum(max_buffer[-buf_const:]) / len(max_buffer)
+        max_buffer = np.append(max_buffer, np.max(signal))
         max_buffer = max_buffer[-buf_const:]
 
         #Onsets
         #samples, read = s()
-        if (np.max(signal) > thresh):
-            if o(signal):
+        #if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
+            #print("{} / {}".format(np.max(filtered_signal),thresh))
+            
+        if (max_noise > 3):
+            if o(filtered_signal):
                 print("%f" % o.get_last_s())
                 onsets.append(o.get_last())
         

@@ -52,6 +52,8 @@ fs = 22050  # Sample rate
 seconds = 0.1 # Duration of recording
 record = 1 #whether or not to record
 i = 0
+win_s = 1024 # fft size
+hop_s = 441 # hop size
 prev_l = ""
 onsets = np.array([])
 
@@ -309,7 +311,7 @@ while True:
         #print(p)
     print("max_noise" + str(max_noise))
     #print(first_or_None)
-    if max_noise < 100:
+    if max_noise < 3:
         l = ""
         notes_librosa = []
     print("Librosa: " + l)
@@ -384,6 +386,11 @@ while True:
 
     
     #get onset of notes and calculate tempo
+
+    if o(np.float32(y)):
+        print("%f" % o.get_last_s())
+        onsets = np.append(onsets, o.get_last())
+    '''
     cur_onsets = librosa.onset.onset_detect(y=y, sr=sr, units='time')
     if (cur_onsets != []):
         detected = True
@@ -394,6 +401,8 @@ while True:
         np.append(onsets, i * seconds)
     np.append(onsets, cur_onsets)
     client.publish('your_topic', detected, qos=1)
+    '''
+
     
     prev_l = l
     i = i + 1
