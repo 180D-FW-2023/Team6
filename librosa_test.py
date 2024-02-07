@@ -29,9 +29,9 @@ y = np.asarray(data).astype(float)
 
 #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
 #times = librosa.times_like(f0)
-max_noise = np.max(np.abs(librosa.stft(y)))
+max_noise = np.max(np.abs(librosa.stft(y, window = 'hann')))
 print(max_noise)
-oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
+oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y, window = 'hann')), ref=np.max)
 mask = (oldD[:, -10:-1] > -21).all(1)
 blank = -80
 newD = np.full_like(oldD, blank)
