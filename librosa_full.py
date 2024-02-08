@@ -323,7 +323,7 @@ while True:
     count = 0
     
     ## Uncomment to process a single chunk os a limited number os sequential chunks. 
-    # for chunk in buffer_chunks[5: 6]:
+    #for chunk in buffer_chunks[5: 6]:
     for chunk in buffer_chunks[0: 60]:
         #print("\n...Chunk: ", str(count))
                 
@@ -386,7 +386,7 @@ while True:
 
     
     #get onset of notes and calculate tempo
-
+    '''
     if o(np.float32(y)):
         print("%f" % o.get_last_s())
         onsets = np.append(onsets, o.get_last())
@@ -401,8 +401,7 @@ while True:
         np.append(onsets, i * seconds)
     np.append(onsets, cur_onsets)
     client.publish('your_topic', detected, qos=1)
-    '''
-
+    
     
     prev_l = l
     i = i + 1

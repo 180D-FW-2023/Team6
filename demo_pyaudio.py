@@ -256,7 +256,7 @@ while True:
         signal = np.frombuffer(audiobuffer, dtype=np.float32)
         #print(np.max(signal))
         #s = aubio.source(audiobuffer, samplerate, hop_s)
-        filtered_signal = nr.reduce_noise(signal, samplerate, thresh_n_mult_nonstationary=2,stationary=False)
+        #filtered_signal = nr.reduce_noise(signal, samplerate, thresh_n_mult_nonstationary=2,stationary=False)
         thresh = np.sum(max_buffer[-buf_const:]) / len(max_buffer)
         max_buffer = np.append(max_buffer, np.max(signal))
         max_buffer = max_buffer[-buf_const:]
@@ -266,10 +266,7 @@ while True:
         #if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
             #print("{} / {}".format(np.max(filtered_signal),thresh))
             
-        if (max_noise > 3):
-            if o(filtered_signal):
-                print("%f" % o.get_last_s())
-                onsets.append(o.get_last())
+
         
         #aubio pitch
         '''
@@ -305,8 +302,11 @@ while True:
         if max_noise < 100:
             l = ""
             notes_librosa = []
-        #print("Librosa: " + l)
-
+        print("Librosa: " + l)
+        if (max_noise > 3):
+            if o(signal):
+                print("%f" % o.get_last_s())
+                onsets.append(o.get_last())
         #HPS pitch
         buffer_chunks = divide_buffer_into_non_overlapping_chunks(signal, fft_len)
         # The buffer chunk at n seconds:
@@ -335,7 +335,7 @@ while True:
                 notes_hps.append(note_name)
 
             notes_hps_string = " ".join(notes_hps)
-            #print("HPS:" + notes_hps_string)
+            print("HPS:" + notes_hps_string)
 
 
 
