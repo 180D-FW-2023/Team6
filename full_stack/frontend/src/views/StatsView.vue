@@ -21,41 +21,17 @@
         label="Select Letter"
         outlined
       ></v-select>
-
-      <!-- Test Button -->
-      <v-btn @click="openDialog('Test')">Test</v-btn>
-
-      <!-- Learn Button -->
-      <v-btn @click="openDialog('Learn')">Learn</v-btn>
-
-      <!-- Dialog for Testing or Learning -->
-      <v-dialog v-model="dialog" persistent max-width="300px">
-        <v-card>
-          <v-card-title class="headline">{{ selectedAction }}</v-card-title>
-          <v-card-text>
-            <div>
-              {{ selectedLetter }} {{ selectedType }} {{ selectedOption }}
-            </div>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="green darken-1" text @click="dialog = false"
-              >Close</v-btn
-            >
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
     </v-container>
     <v-container>
       <div><h1>Statistics</h1></div>
-      <div v-if="statInfo">{{ statInfo }}</div>
+      <div v-if="chordInfo">{{ chordInfo }}</div>
       <div v-else>Loading chord information...</div>
     </v-container>
   </v-app>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted } from "vue";
 import io from "socket.io-client";
 import axios from 'axios';
 import {
@@ -74,12 +50,9 @@ import {
 const selectedOption = ref("Chord");
 const selectedType = ref("Major");
 const selectedLetter = ref("A");
-const dialog = ref(false);
-const selectedAction = ref("");
 const mqttData = ref(null);
-const statInfo = ref('');
 const socket = io("http://127.0.0.1:5000");
-
+const chordInfo = ref('');
 const letters = ["A", "B", "C", "D", "E", "F", "G"];
 const scales = {
   // Major Scales
@@ -118,61 +91,31 @@ const chords = {
   "B Minor": "B3 D4 F#4",
 };
 
-const getStats = async (type, modality, key) => {
-  let endpoint = '';
-  if (type === 'Chord') {
-    endpoint = 'get-chord';
-  } else if (type === 'Scale') {
-    endpoint = 'get-scale';
-  }
-
+const getChord = async (modality, key) => {
   try {
-    const response = await axios.get(`http://127.0.0.1:5000/${endpoint}`, {
+    const response = await axios.get('http://127.0.0.1:5000/get-chord', {
       params: {
         modality: modality,
         key: key
       }
     });
-    statInfo.value = JSON.stringify(response.data); // Update chordInfo with the response data
+    chordInfo.value = JSON.stringify(response.data); // Update chordInfo with the response data
   } catch (error) {
     console.error(error);
-    statInfo.value = 'No stats available'; // Update chordInfo on error
+    chordInfo.value = 'Failed to load chord information'; // Update chordInfo on error
   }
 };
-
-
-
 
 onMounted(() => {
   socket.on("mqtt_data", (data) => {
     mqttData.value = `Topic: ${data.topic}, Payload: ${data.payload}`;
   });
-  getStats(selectedOption.value, selectedType.value.toLowerCase(), selectedLetter.value);
+  getChord(selectedType.value.toLowerCase(), selectedLetter.value); // Adjusted to use selectedType and selectedLetter
 });
 
-watch([selectedOption, selectedType, selectedLetter], () => {
-  getStats(selectedOption.value, selectedType.value.toLowerCase(), selectedLetter.value);
-}, { immediate: true }); // immediate: true ensures getStats runs on initial setup as well
-
-const openDialog = (action) => {
-  selectedAction.value = action;
-  dialog.value = true;
-
-  // Construct the message to send
-  const messageType = selectedType.value + " " + selectedOption.value;
-  const message = selectedLetter.value + " " + messageType;
-  const key = message.replace(" Scale", "");
-
-  // Find the scale in the dictionary
-  const scale = scales[key];
-
-  // Determine the topic based on the action
-  const topic = action === "Test" ? "team6/test" : "team6/lesson";
-  // Emit the message on the socket
-  socket.emit("publish_mqtt", { topic: topic, payload: scale });
-};
 </script>
 
 <style scoped>
-/* Add your styles here */
+
 </style>
+
