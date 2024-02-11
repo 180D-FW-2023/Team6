@@ -20,11 +20,13 @@ TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
 # initialise pyaudio
 p = pyaudio.PyAudio()
 
+FFT_SIZE = 4096
+SAMPLE_RATE = 22050
 # open stream
-buffer_size = 4096
+buffer_size = FFT_SIZE
 pyaudio_format = pyaudio.paFloat32
 n_channels = 1
-samplerate = 44100
+samplerate = SAMPLE_RATE
 stream = p.open(format=pyaudio_format,
                 channels=n_channels,
                 rate=samplerate,
@@ -44,7 +46,7 @@ else:
 
 # setup pitch
 tolerance = 0.8
-win_s = 4096 # fft size
+win_s = FFT_SIZE # fft size
 hop_s = buffer_size # hop size
 pitch_o = aubio.pitch("default", win_s, hop_s, samplerate)
 pitch_o.set_unit("midi")
@@ -53,7 +55,7 @@ o = aubio.onset("default", win_s, hop_s, samplerate)
 onsets = []
 max_buffer = [0]
 buf_const = 2
-fft_len = 4096
+fft_len = FFT_SIZE
 
 def divide_buffer_into_non_overlapping_chunks(buffer, max_len):
     buffer_len = len(buffer)
@@ -278,10 +280,10 @@ while True:
 
 
         #librosa pitch
-        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hann')))
-        #print(max_noise)
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hann')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -21).all(1)
+        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
+        print("max_noise:" +  str(max_noise))
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
+        mask = (oldD[:, -10:-1] > -20).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
         newD[mask] = oldD[mask]
@@ -295,18 +297,20 @@ while True:
             notes_librosa = librosa.hz_to_note(pitches_final)
             notes_librosa = list(OrderedDict.fromkeys(notes_librosa))
         else:
-            notes_librosa = ""
+            notes_librosa = []
         #print(pitches_final)
         #print(notes)
         l = " ".join(notes_librosa)
-        if max_noise < 100:
+        
+        if max_noise < 40:
             l = ""
             notes_librosa = []
-        print("Librosa: " + l)
+        #print("Librosa: " + l)
         if (max_noise > 3):
             if o(signal):
                 print("%f" % o.get_last_s())
                 onsets.append(o.get_last())
+        
         #HPS pitch
         buffer_chunks = divide_buffer_into_non_overlapping_chunks(signal, fft_len)
         # The buffer chunk at n seconds:
@@ -335,7 +339,7 @@ while True:
                 notes_hps.append(note_name)
 
             notes_hps_string = " ".join(notes_hps)
-            print("HPS:" + notes_hps_string)
+            #print("HPS:" + notes_hps_string)
 
 
 
@@ -365,7 +369,11 @@ while True:
             if "C3" in notes_hps:
                 if "C♯3" not in notes_librosa:
                     both_notes.append("C3")
-            
+            if "D#3" in notes_hps:
+                if "D♯4" in notes_librosa:
+                    both_notes.append("D#3")
+            #if "D3" in notes_hps:
+                #both_notes.append("D3")
             for nl in notes_librosa:
                 if nl in notes_hps:
                     both_notes.append(nl)

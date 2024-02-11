@@ -309,9 +309,9 @@ while True:
     
         #print("loop")
         #print(p)
-    print("max_noise" + str(max_noise))
+    #print("max_noise" + str(max_noise))
     #print(first_or_None)
-    if max_noise < 3:
+    if max_noise < 1:
         l = ""
         notes_librosa = []
     print("Librosa: " + l)
