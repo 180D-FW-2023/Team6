@@ -205,9 +205,9 @@ def encode_to_scale(values, scale):
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 ref_img = False
 count = 0
-
+print("starting loop")
 while cap.isOpened():
-
+    print("inside the loop")
     success, frame_img = cap.read()
     # frame = cv2.rotate(frame, cv2.ROTATE_180)
 
