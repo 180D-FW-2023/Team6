@@ -171,7 +171,9 @@ def inference_frame(inf_frame, mask_bound, hex_color_1, hex_color_2, cluster_dic
             error_percentage = 0  # If no comparisons, set error percentage to 0
         error_percentages_white.append(error_percentage)  # Store the error percentage
 
-    error_lower_bound = [6, 7, 7, 6, 5, 8, 7, 7, 7]
+    # error_lower_bound = [6, 7, 8.5, 9, 7, 8, 11, 12, 7]
+    # error_upper_bound = [15, 20, 20, 15, 20, 15, 20, 20, 15]
+    error_lower_bound = [6, 7, 5, 5, 5, 8, 7, 7, 7]
     error_upper_bound = [15, 20, 20, 15, 20, 15, 20, 15, 15]
     for index, values in enumerate(error_percentages_white):
         if values > error_lower_bound[index] and values < error_upper_bound[index]:
@@ -202,12 +204,15 @@ def encode_to_scale(values, scale):
     return encoded_notes
 
 
-cap = cv2.VideoCapture(3, cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 ref_img = False
 count = 0
 print("starting loop", cap)
 while cap.isOpened():
-    print("inside the loop")
+    if count < 100:
+        count += 1
+        continue
+    # print("inside the loop")
     success, frame_img = cap.read()
     # frame = cv2.rotate(frame, cv2.ROTATE_180)
 
@@ -217,7 +222,7 @@ while cap.isOpened():
 
     if not ref_img:
 
-        if count == 0:
+        if count == 100:
             mask_bound = (0, 265, 640, 452)
             roi, cluster_dict_1, cluster_dict_2 = reference_frame(frame_img, mask_bound, "#C2C36F", "#DC6D99")
             # roi, cluster_dict_1 = reference_frame(frame_img, mask_bound, "#C8CE7B", "#699faf")
@@ -236,25 +241,24 @@ while cap.isOpened():
         all_notes = encoded_notes_white + encoded_notes_black
         if (all_notes):
             print(all_notes)
-        for keys in error_keys_black:
-            for i in cluster_dict_1[keys]:
-                rows, columns = i
-
-                frame_roi[rows][columns][0] = 0
-                frame_roi[rows][columns][1] = 0
-                frame_roi[rows][columns][2] = 255
-
-        for keys in error_keys_white:
-            for i in cluster_dict_2[keys]:
-                rows, columns = i
-
-                frame_roi[rows][columns][0] = 0
-                frame_roi[rows][columns][1] = 255
-                frame_roi[rows][columns][2] = 255
-
-        cv2.imshow('Pressed Key Frame', frame_roi)
-        if cv2.waitKey(1) & 0xFF:
-            break
+        # for keys in error_keys_black:
+        #     for i in cluster_dict_1[keys]:
+        #         rows, columns = i
+        #
+        #         frame_roi[rows][columns][0] = 0
+        #         frame_roi[rows][columns][1] = 0
+        #         frame_roi[rows][columns][2] = 255
+        #
+        # for keys in error_keys_white:
+        #     for i in cluster_dict_2[keys]:
+        #         rows, columns = i
+        #
+        #         frame_roi[rows][columns][0] = 0
+        #         frame_roi[rows][columns][1] = 255
+        #         frame_roi[rows][columns][2] = 255
+        #
+        cv2.waitKey(1)
+        # cv2.imshow('Pressed Key Frame', frame_roi)
 
 
 cap.release()
