@@ -204,6 +204,7 @@ def encode_to_scale(values, scale):
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 ref_img = False
+count = 0
 
 while cap.isOpened():
 
@@ -216,12 +217,13 @@ while cap.isOpened():
 
     if not ref_img:
 
-        if cv2.waitKey(1) & 0xFF == ord('s'):
+        if count == 0:
             mask_bound = (0, 265, 640, 452)
             roi, cluster_dict_1, cluster_dict_2 = reference_frame(frame_img, mask_bound, "#C2C36F", "#DC6D99")
             # roi, cluster_dict_1 = reference_frame(frame_img, mask_bound, "#C8CE7B", "#699faf")
             ref_img = True
             frame_img = roi
+            count += 1
 
     elif (ref_img):
 
