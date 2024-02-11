@@ -230,11 +230,32 @@ while cap.isOpened():
         frame_roi, error_keys_black, error_keys_white = inference_frame(frame_img, mask_bound, "#C2C36F", "#DC6D99",
                                                                         cluster_dict_1, cluster_dict_2, roi,
                                                                         threshold=40)
+        # frame_roi, error_keys_black = inference_frame(frame_img, mask_bound, "#C8CE7B", "#699faf", cluster_dict_1, " ",roi, threshold = 40)
         encoded_notes_white = encode_to_scale(error_keys_white, white_keys)
         encoded_notes_black = encode_to_scale(error_keys_black, black_keys)
         all_notes = encoded_notes_white + encoded_notes_black
         if (all_notes):
             print(all_notes)
+        for keys in error_keys_black:
+            for i in cluster_dict_1[keys]:
+                rows, columns = i
+
+                frame_roi[rows][columns][0] = 0
+                frame_roi[rows][columns][1] = 0
+                frame_roi[rows][columns][2] = 255
+
+        for keys in error_keys_white:
+            for i in cluster_dict_2[keys]:
+                rows, columns = i
+
+                frame_roi[rows][columns][0] = 0
+                frame_roi[rows][columns][1] = 255
+                frame_roi[rows][columns][2] = 255
+
+        cv2.imshow('Pressed Key Frame', frame_roi)
+        if cv2.waitKey(1) & 0xFF:
+            break
 
 
 cap.release()
+cv2.destroyAllWindows()
