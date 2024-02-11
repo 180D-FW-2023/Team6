@@ -202,7 +202,7 @@ def encode_to_scale(values, scale):
     return encoded_notes
 
 
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(3, cv2.CAP_DSHOW)
 ref_img = False
 count = 0
 print("starting loop", cap)
