@@ -20,10 +20,10 @@ fi
 
 # Run your scripts in the background
 # Assuming Python 3.x is the executable for Python scripts
-python3 audio_detection.py &
+python audio_processing.py &
 AUDIO_PID=$!
 
-python3 cv_script.py &
+python cv_and_led.py &
 CV_PID=$!
 
 # Wait for either script to exit
