@@ -17,3 +17,5 @@ scipy
 matplotlib
 numpy
 paho-mqtt
+pickle
+threading

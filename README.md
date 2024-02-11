@@ -36,6 +36,8 @@ scipy
 matplotlib
 numpy
 paho-mqtt
+pickle
+threading
 ```
 
 # Running the code

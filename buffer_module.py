@@ -1,19 +1,25 @@
 from collections import deque
 import time
 
-# Initialize the buffer with a maximum length of 100 entries
-buffer = deque(maxlen=100)
+class DataBuffer:
+    def __init__(self, max_length=100, max_age=0.3):
+        self.buffer = deque(maxlen=max_length)
+        self.max_age = max_age  # Maximum age of entries in seconds
 
-def add_to_buffer(data, timestamp):
-    # Add new data entry to the buffer
-    buffer.append((timestamp, data))
-    # Remove old entries
-    current_time = time.time()
-    while buffer and current_time - buffer[0][0] > 0.3:
-        buffer.popleft()
+    def add_to_buffer(self, data_tuple):
+        """Add new data entry to the buffer."""
+        timestamp, data = data_tuple
+        self.buffer.append((timestamp, data))
+        self.cleanup()
 
-def get_latest_entry():
-    # Return the latest entry if buffer is not empty
-    if buffer:
-        return buffer[-1]
-    return None
+    def cleanup(self):
+        """Remove old entries."""
+        current_time = time.time()
+        while self.buffer and current_time - self.buffer[0][0] > self.max_age:
+            self.buffer.popleft()
+
+    def get_latest_entry(self):
+        """Return the data of the latest entry if buffer is not empty."""
+        if self.buffer:
+            return self.buffer[-1][1]
+        return None

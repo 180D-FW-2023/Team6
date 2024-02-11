@@ -9,6 +9,10 @@
 #    $ ./python/demos/demo_pyaudio.py
 #    $ ./python/demos/demo_pyaudio.py /tmp/recording.wav
 
+import time
+import pickle
+pipe_path = 'audio_output'
+
 import pyaudio
 import sys
 import numpy as np
@@ -17,6 +21,8 @@ import librosa
 from collections import OrderedDict
 import math
 TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
+
+
 # initialise pyaudio
 p = pyaudio.PyAudio()
 
@@ -252,149 +258,153 @@ def to_str_f4(value):
 ordered_note_freq = get_all_notes_freq()
 
 print("*** starting recording")
-while True:
-    try:
-        audiobuffer = stream.read(buffer_size)
-        signal = np.frombuffer(audiobuffer, dtype=np.float32)
-        #print(np.max(signal))
-        #s = aubio.source(audiobuffer, samplerate, hop_s)
-        #filtered_signal = nr.reduce_noise(signal, samplerate, thresh_n_mult_nonstationary=2,stationary=False)
-        thresh = np.sum(max_buffer[-buf_const:]) / len(max_buffer)
-        max_buffer = np.append(max_buffer, np.max(signal))
-        max_buffer = max_buffer[-buf_const:]
+with open(pipe_path, 'wb') as pipe: 
+    while True:
+        try:
+            audiobuffer = stream.read(buffer_size)
+            signal = np.frombuffer(audiobuffer, dtype=np.float32)
+            #print(np.max(signal))
+            #s = aubio.source(audiobuffer, samplerate, hop_s)
+            #filtered_signal = nr.reduce_noise(signal, samplerate, thresh_n_mult_nonstationary=2,stationary=False)
+            thresh = np.sum(max_buffer[-buf_const:]) / len(max_buffer)
+            max_buffer = np.append(max_buffer, np.max(signal))
+            max_buffer = max_buffer[-buf_const:]
 
-        #Onsets
-        #samples, read = s()
-        #if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
-            #print("{} / {}".format(np.max(filtered_signal),thresh))
+            #Onsets
+            #samples, read = s()
+            #if (np.max(filtered_signal) > np.sqrt(1.2) * thresh):
+                #print("{} / {}".format(np.max(filtered_signal),thresh))
+                
+
             
-
-        
-        #aubio pitch
-        '''
-        pitch = pitch_o(signal)[0]
-        confidence = pitch_o.get_confidence()
-        note = aubio.midi2note(int(pitch)+1)
-        print("{} / {}".format(note,confidence))
-        '''
+            #aubio pitch
+            '''
+            pitch = pitch_o(signal)[0]
+            confidence = pitch_o.get_confidence()
+            note = aubio.midi2note(int(pitch)+1)
+            print("{} / {}".format(note,confidence))
+            '''
 
 
-        #librosa pitch
-        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
-        print("max_noise:" +  str(max_noise))
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -20).all(1)
-        blank = -80
-        newD = np.full_like(oldD, blank)
-        newD[mask] = oldD[mask]
-        newS=librosa.db_to_amplitude(newD)
+            #librosa pitch
+            max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
+            print("max_noise:" +  str(max_noise))
+            oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
+            mask = (oldD[:, -10:-1] > -20).all(1)
+            blank = -80
+            newD = np.full_like(oldD, blank)
+            newD[mask] = oldD[mask]
+            newS=librosa.db_to_amplitude(newD)
 
-        pitches, magnitudes = librosa.piptrack(S=newS, sr=samplerate)
-        #print(pitches[np.where(magnitudes>0)])
-        #print(magnitudes[np.where(magnitudes>0)])
-        pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
-        if len(pitches_final) > 0:
-            notes_librosa = librosa.hz_to_note(pitches_final)
-            notes_librosa = list(OrderedDict.fromkeys(notes_librosa))
-        else:
-            notes_librosa = []
-        #print(pitches_final)
-        #print(notes)
-        l = " ".join(notes_librosa)
-        
-        if max_noise < 40:
-            l = ""
-            notes_librosa = []
-        #print("Librosa: " + l)
-        if (max_noise > 3):
-            if o(signal):
-                print("%f" % o.get_last_s())
-                onsets.append(o.get_last())
-        
-        #HPS pitch
-        buffer_chunks = divide_buffer_into_non_overlapping_chunks(signal, fft_len)
-        # The buffer chunk at n seconds:
-
-        count = 0
-        
-        #HPS
-        ## Uncomment to process a single chunk os a limited number os sequential chunks. 
-        #for chunk in buffer_chunks[5: 6]:
-        for chunk in buffer_chunks[0: 60]:
-            #print("\n...Chunk: ", str(count))
-                    
-            fft_freq, fft_res, fft_res_len = getFFT(chunk, len(chunk))
-            fft_res = remove_dc_offset(fft_res)
-
-            # Calculate Root Mean Square of the signal buffer, as a scale factor to the threshold.
-            buffer_rms = np.sqrt(np.mean(chunk**2))
-
-            all_freqs = PitchSpectralHps(fft_res, fft_freq, samplerate, buffer_rms)
-            # print("all_freqs ")
-            # print(all_freqs)
-            notes_hps = []
-            for freq in all_freqs:
-                note_name = find_nearest_note(ordered_note_freq, freq[0])
-                #print("=> freq: " + to_str_f(freq[0]) + " Hz  value: " + to_str_f(freq[1]) + " note_name: " + note_name )
-                notes_hps.append(note_name)
-
-            notes_hps_string = " ".join(notes_hps)
-            #print("HPS:" + notes_hps_string)
-
-
-
-            ## Uncomment to print the arrays.
-            # print("\nfft_freq: ")
-            # print(fft_freq)
-            # print("\nfft_freq_len: " + str(len(fft_freq)))
-
-            # print("\nfft_res: ")
-            # print(fft_res)
-
-            # print("\nfft_res_len: ")
-            # print(fft_res_len)
-
-
-            ## Uncomment to show the graph of the result of the FFT with the
-            ## correct frequencies in the legend. 
-            # N = fft_res_len
-            # fft_freq_interval = fft_freq[: N // 4]
-            # fft_res_interval = fft_res[: N // 4]
-            # fig, ax = plt.subplots()
-            # ax.plot(fft_freq_interval, 2.0/N * np.abs(fft_res_interval))
-            # plt.show()
-
-            count += 1
-            both_notes = []
-            if "C3" in notes_hps:
-                if "C♯3" not in notes_librosa:
-                    both_notes.append("C3")
-            if "D#3" in notes_hps:
-                if "D♯4" in notes_librosa:
-                    both_notes.append("D#3")
-            #if "D3" in notes_hps:
-                #both_notes.append("D3")
-            for nl in notes_librosa:
-                if nl in notes_hps:
-                    both_notes.append(nl)
+            pitches, magnitudes = librosa.piptrack(S=newS, sr=samplerate)
+            #print(pitches[np.where(magnitudes>0)])
+            #print(magnitudes[np.where(magnitudes>0)])
+            pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
+            if len(pitches_final) > 0:
+                notes_librosa = librosa.hz_to_note(pitches_final)
+                notes_librosa = list(OrderedDict.fromkeys(notes_librosa))
+            else:
+                notes_librosa = []
+            #print(pitches_final)
+            #print(notes)
+            l = " ".join(notes_librosa)
             
-            #remove duplicates
-            both_notes = list(set(both_notes))
-            both_notes_string = " ".join(both_notes)
-            print("Combined:" + both_notes_string)           
+            if max_noise < 40:
+                l = ""
+                notes_librosa = []
+            #print("Librosa: " + l)
+            if (max_noise > 3):
+                if o(signal):
+                    print("%f" % o.get_last_s())
+                    onsets.append(o.get_last())
             
+            #HPS pitch
+            buffer_chunks = divide_buffer_into_non_overlapping_chunks(signal, fft_len)
+            # The buffer chunk at n seconds:
+
+            count = 0
+            
+            #HPS
+            ## Uncomment to process a single chunk os a limited number os sequential chunks. 
+            #for chunk in buffer_chunks[5: 6]:
+            for chunk in buffer_chunks[0: 60]:
+                #print("\n...Chunk: ", str(count))
+                        
+                fft_freq, fft_res, fft_res_len = getFFT(chunk, len(chunk))
+                fft_res = remove_dc_offset(fft_res)
+
+                # Calculate Root Mean Square of the signal buffer, as a scale factor to the threshold.
+                buffer_rms = np.sqrt(np.mean(chunk**2))
+
+                all_freqs = PitchSpectralHps(fft_res, fft_freq, samplerate, buffer_rms)
+                # print("all_freqs ")
+                # print(all_freqs)
+                notes_hps = []
+                for freq in all_freqs:
+                    note_name = find_nearest_note(ordered_note_freq, freq[0])
+                    #print("=> freq: " + to_str_f(freq[0]) + " Hz  value: " + to_str_f(freq[1]) + " note_name: " + note_name )
+                    notes_hps.append(note_name)
+
+                notes_hps_string = " ".join(notes_hps)
+                #print("HPS:" + notes_hps_string)
 
 
-        if outputsink:
-            outputsink(signal, len(signal))
 
-        if record_duration:
-            total_frames += len(signal)
-            if record_duration * samplerate < total_frames:
-                break
-    except KeyboardInterrupt:
-        print("*** Ctrl+C pressed, exiting")
-        break
+                ## Uncomment to print the arrays.
+                # print("\nfft_freq: ")
+                # print(fft_freq)
+                # print("\nfft_freq_len: " + str(len(fft_freq)))
+
+                # print("\nfft_res: ")
+                # print(fft_res)
+
+                # print("\nfft_res_len: ")
+                # print(fft_res_len)
+
+
+                ## Uncomment to show the graph of the result of the FFT with the
+                ## correct frequencies in the legend. 
+                # N = fft_res_len
+                # fft_freq_interval = fft_freq[: N // 4]
+                # fft_res_interval = fft_res[: N // 4]
+                # fig, ax = plt.subplots()
+                # ax.plot(fft_freq_interval, 2.0/N * np.abs(fft_res_interval))
+                # plt.show()
+
+                count += 1
+                both_notes = []
+                if "C3" in notes_hps:
+                    if "C♯3" not in notes_librosa:
+                        both_notes.append("C3")
+                if "D#3" in notes_hps:
+                    if "D♯4" in notes_librosa:
+                        both_notes.append("D#3")
+                #if "D3" in notes_hps:
+                    #both_notes.append("D3")
+                for nl in notes_librosa:
+                    if nl in notes_hps:
+                        both_notes.append(nl)
+                
+                #remove duplicates
+                both_notes = list(set(both_notes))
+                both_notes_string = " ".join(both_notes)
+                print("Combined:" + both_notes_string)           
+                
+                ### Write to pipe
+                data_tuple = (time.time(), both_notes_string)
+                serialized_data = pickle.dumps(data_tuple)
+                pipe.write(serialized_data)
+
+            if outputsink:
+                outputsink(signal, len(signal))
+
+            if record_duration:
+                total_frames += len(signal)
+                if record_duration * samplerate < total_frames:
+                    break
+        except KeyboardInterrupt:
+            print("*** Ctrl+C pressed, exiting")
+            break
 
 print("*** done recording")
 stream.stop_stream()
