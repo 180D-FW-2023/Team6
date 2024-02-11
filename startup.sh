@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the named pipe's path
-PIPE_PATH="./my_pipe"
+PIPE_PATH="./audio_output"
 
 # Function to clean up the named pipe on exit
 cleanup() {
