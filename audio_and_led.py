@@ -11,7 +11,7 @@ np.set_printoptions(threshold=np.inf)
 
 import time
 import paho.mqtt.client as mqtt
-import led_control as led
+import led_module as led
 from rpi_ws281x import Color
 
 '''
