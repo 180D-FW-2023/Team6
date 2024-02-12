@@ -1,7 +1,7 @@
 ################## SETTING UP BUFFER AND ASYNC PIPE READER #####################
 import threading
 import pickle
-import buffer_module as buffer
+from buffer_module import DataBuffer
 pipe_path = "audio_output"
 data_buffer = DataBuffer(max_length=100, max_age=0.3)
 
