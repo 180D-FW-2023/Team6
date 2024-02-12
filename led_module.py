@@ -1,5 +1,5 @@
 from rpi_ws281x import *
-import time
+from datetime import datetime, timedelta
 
 # LED strip configuration:
 LED_COUNT      = 15     # Number of LED pixels.
@@ -13,7 +13,7 @@ LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
 ################ LED CODE #####################
 
-recently_on = []
+recently_on = {i:None for i in range(87)}
 offset = 39
 
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
@@ -85,3 +85,18 @@ def setColorByIndex(index, color=(0,128,0)):
     if not (index < offset or index >= LED_COUNT+offset):
         strip.setPixelColor(index-offset, color)
     strip.show()
+
+def multiColor(indices, color = Color(128, 128, 128), on_time=0.5):
+    now = datetime.now()
+    off_color = Color(0,0,0)
+    
+    # TODO: put this in a separate thread so that lights longer than on_time can be turned off
+    for key, timestamp in recently_on.items():
+        if timestamp and now - timestamp > timedelta(seconds=on_time):     # if the LED has been on for more than on_time
+            recently_on[key] = None
+            strip.setPixelColor(key-offset, off_color)
+    
+    for index in indices:
+        if not (index < offset or index >= LED_COUNT+offset):
+            strip.setPixelColor(index-offset, color)
+            recently_on[index] = now
