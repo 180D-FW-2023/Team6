@@ -309,7 +309,7 @@ while True:
         max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
         # print("max_noise:" +  str(max_noise))
         oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -20).all(1)
+        mask = (oldD[:, -10:-1] > -70).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
         newD[mask] = oldD[mask]
@@ -405,8 +405,8 @@ while True:
                     both_notes.append(nl)
             
             #remove duplicates
-            print("librosa: ", notes_librosa)
-            print("hps: ", notes_hps)
+            # print("librosa: ", notes_librosa)
+            # print("hps: ", notes_hps)
             both_notes = list(set(both_notes))
             both_notes_string = " ".join(both_notes)
         
