@@ -1,13 +1,4 @@
 ################## SETTING UP BUFFER AND ASYNC PIPE READER #####################
-import threading
-import pickle
-
-
-# Create and start the reader thread
-# reader_thread = threading.Thread(target=read_pipe, args=(pipe_path,))
-# reader_thread.daemon = True  # Daemonize thread
-# reader_thread.start()
-
 
 ################## LED SETUP #####################
 
@@ -141,16 +132,48 @@ client.loop_start()
 
 
 ################## MAIN LOOP #####################
-import zmq
+
 print("Initializing LED strip")
 led.start_sequence()
+
+import zmq
+import collections
+from datetime import datetime, timedelta
+
+# Prepare the ZeroMQ context and PULL socket
+context = zmq.Context()
+socket = context.socket(zmq.PULL)
+socket.connect("tcp://localhost:5555")  # Connect to the sender
+
+# Define the message buffer
+message_buffer = collections.deque()
+
+def add_message_to_buffer(message):
+    now = datetime.now()
+    message_buffer.append((message, now))
+    while message_buffer:
+        _, timestamp = message_buffer[0]  # Check the oldest message
+        if now - timestamp > timedelta(seconds=0.3):
+            message_buffer.popleft()
+        else:
+            break
+
 
 try:
     while True:
         # TODO: Add CV code for triggering buffer read
-        
-        notes = [note.strip().upper() for note in l.split()]
+        notes_string = socket.recv_string()  # Receiving the note as a string
+
+# Process the received note
+        print("Received note:", notes_string)
+        notes = notes_string.split()
         top_note = notes[0] if notes else None
+        add_message_to_buffer(notes_string)
+        
+        # Optional: Print current buffer for demonstration
+        print("Current buffer:")
+        for msg, _ in message_buffer:
+            print(msg)
 
         if top_note:
             
@@ -175,3 +198,6 @@ except KeyboardInterrupt:
     led.colorWipeAll(Color(0,0,0), 50)
     client.disconnect
     client.loop_stop()
+
+
+
