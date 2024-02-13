@@ -88,15 +88,21 @@ def setColorByIndex(index, color=(0,128,0)):
 
 def multiColor(indices, color = Color(128, 128, 128), on_time=0.5):
     now = datetime.now()
-    off_color = Color(0,0,0)
-    
-    # TODO: put this in a separate thread so that lights longer than on_time can be turned off
-    for key, timestamp in recently_on.items():
-        if timestamp and now - timestamp > timedelta(seconds=on_time):     # if the LED has been on for more than on_time
-            recently_on[key] = None
-            strip.setPixelColor(key-offset, off_color)
     
     for index in indices:
         if not (index < offset or index >= LED_COUNT+offset):
             strip.setPixelColor(index-offset, color)
             recently_on[index] = now
+    
+    strip.show()
+            
+def turnOffExpired():
+    now = datetime.now()
+    off_color = Color(0,0,0)
+    
+    for key, timestamp in recently_on.items():
+        if timestamp and now - timestamp > timedelta(seconds=0.5):     # if the LED has been on for more than 0.5 seconds
+            recently_on[key] = None
+            strip.setPixelColor(key-offset, off_color)
+    
+    strip.show()

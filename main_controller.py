@@ -158,7 +158,9 @@ try:
                 case _:
                     # default note playing - shows white light
                     print("----- Default mode -----")
-                    led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+                    led.turnOffExpired()
+                    indices = [led.note_to_led_index[note] for note in notes]
+                    led.multiColor(indices, color=Color(128,128,128))
 
 except KeyboardInterrupt:
     audio.cleanup()
