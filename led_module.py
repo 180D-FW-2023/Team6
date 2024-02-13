@@ -1,5 +1,6 @@
 from rpi_ws281x import *
 from datetime import datetime, timedelta
+import time
 
 # LED strip configuration:
 LED_COUNT      = 15     # Number of LED pixels.

@@ -1,7 +1,8 @@
 import paho.mqtt.client as mqtt
 import led_module as led
-import audio_module as audio
+# import audio_module as audio
 from rpi_ws281x import Color
+import zmq
 
 '''
 modes:
@@ -132,16 +133,29 @@ def test_mode(top_note):
         played_notes = []
         target_notes = []
 
+context = zmq.Context()
+# Socket to subscribe to messages
+subscriber = context.socket(zmq.PULL)
+subscriber.bind("tcp://*:5556")
 
 try:
     while True:
-        l = audio.get_pitches()
+        l = ""
+        try:
+
+            l = subscriber.recv_string(zmq.NOBLOCK)  # Non-blocking receive
+        except zmq.Again:
+            # No message received, skip without blocking
+            pass
+            
+        
         if not l:
             continue
-        
+        print("Main controller received: ", l)
         notes = [note.strip().upper() for note in l.split()]
         top_note = notes[0] if notes else None
 
+        print("top_note: ", top_note)
         if top_note:
             
             print("Curr Note: ", top_note)
@@ -158,12 +172,13 @@ try:
                 case _:
                     # default note playing - shows white light
                     print("----- Default mode -----")
-                    led.turnOffExpired()
-                    indices = [led.note_to_led_index[note] for note in notes]
-                    led.multiColor(indices, color=Color(128,128,128))
+                    led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+                    # led.turnOffExpired()
+                    # indices = [led.note_to_led_index[note] for note in notes]
+                    # led.multiColor(indices, color=Color(128,128,128))
 
 except KeyboardInterrupt:
-    audio.cleanup()
+    # audio.cleanup()
     led.colorWipeAll(Color(128,0,0), 50)
     led.colorWipeAll(Color(0,0,0), 50)
     client.disconnect

@@ -3,10 +3,12 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 import time
 import zmq
-# Prepare the ZeroMQ context and PUSH socket
+
 context = zmq.Context()
 socket = context.socket(zmq.PUSH)
-socket.bind("tcp://*:5555")  # Bind to TCP port 5555 on all interfaces
+
+# Bind the socket to a TCP address, with a port number (e.g., 5555)
+socket.bind("tcp://*:5555")
 
 
 # create hex_color_picker
@@ -279,7 +281,7 @@ def inference_frame_calibration(inf_frame, mask_bound, hex_color_1, hex_color_2,
     return inf_roi, error_keys_black, error_keys_white, error_lower_bound, error_upper_bound
 
 white_keys = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3']
-black_keys = ['C♯3', 'D♯3', 'F♯3', 'G♯3', 'A♯3']
+black_keys = ['C#3', 'D#3', 'F#3', 'G#3', 'A#3']
 
 def encode_to_scale(values, scale):
     encoded_notes = []
@@ -353,8 +355,11 @@ while cap.isOpened():
             encoded_notes_black = encode_to_scale(error_keys_black, black_keys)
             all_notes = encoded_notes_white + encoded_notes_black
             if (all_notes):
-                print("sending to socket: ", ' '.join(all_notes))
-                socket.send_string(' '.join(all_notes))   
+                print(all_notes)
+                try:
+                    socket.send_string(' '.join(all_notes), zmq.NOBLOCK)
+                except zmq.Again:
+                    print("Sending failed, socket not ready")
             # for keys in error_keys_black:
             #     for i in cluster_dict_1[keys]:
             #         rows, columns = i
