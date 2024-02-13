@@ -368,6 +368,12 @@ def get_pitches():
             if "D#3" in notes_hps:
                 if "D♯4" in notes_librosa:
                     both_notes.append("D#3")
+            if "D3" in notes_hps:
+                if "D4" in notes_librosa:
+                    both_notes.append("D3")
+            if "E3" in notes_hps:
+                if "E4" in notes_librosa:
+                    both_notes.append("E3")
             #if "D3" in notes_hps:
                 #both_notes.append("D3")
             for nl in notes_librosa:
