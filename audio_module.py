@@ -362,20 +362,13 @@ def get_pitches():
 
             count += 1
             both_notes = []
-            if "C3" in notes_hps:
-                if "C♯3" not in notes_librosa:
-                    both_notes.append("C3")
-            if "D#3" in notes_hps:
-                if "D♯4" in notes_librosa:
-                    both_notes.append("D#3")
-            if "D3" in notes_hps:
-                if "D4" in notes_librosa:
-                    both_notes.append("D3")
-            if "E3" in notes_hps:
-                if "E4" in notes_librosa:
-                    both_notes.append("E3")
-            #if "D3" in notes_hps:
-                #both_notes.append("D3")
+            note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
+            for pair in note_pairs:
+                letter1, letter2 = pair
+                # Check if the extracted letters match and append if conditions are met
+                if letter1 in notes_hps and letter2 in notes_librosa:
+                    #print(pair)
+                    both_notes.append(letter1)
             for nl in notes_librosa:
                 if nl in notes_hps:
                     both_notes.append(nl)
