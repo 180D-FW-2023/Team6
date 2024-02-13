@@ -18,6 +18,9 @@ import aubio
 import librosa
 from collections import OrderedDict
 import math
+import zmq
+import collections
+from datetime import datetime, timedelta
 TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
 
 
@@ -262,9 +265,7 @@ socket.connect("tcp://localhost:5555")  # Connect to the sender
 print("*** starting recording")
 
 
-import zmq
-import collections
-from datetime import datetime, timedelta
+
 
 
 def add_message_to_buffer(message):
