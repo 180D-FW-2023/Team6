@@ -112,12 +112,18 @@ def test_mode(top_note):
     print("TARGET ", target_notes)
     print("RECORDED ", played_notes)
     
+    if testModeCheckDup(top_note):
+        return
+    
+    
     if top_note == target_notes[len(played_notes)]:
         print("Correct!")
-        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
+        led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(0,128,0))
+        # led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
     else:
         print("Wrong!")
-        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(128,0,0))
+        led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(128,0,0))
+        # led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(128,0,0))
     
     played_notes.append(top_note)
     
@@ -142,28 +148,24 @@ try:
     while True:
         l = ""
         try:
-
             l = subscriber.recv_string(zmq.NOBLOCK)  # Non-blocking receive
         except zmq.Again:
             # No message received, skip without blocking
             pass
-            
         
         if not l:
             continue
-        print("Main controller received: ", l)
+        
         notes = [note.strip().upper() for note in l.split()]
         top_note = notes[0] if notes else None
 
-        print("top_note: ", top_note)
         if top_note:
-            
-            print("Curr Note: ", top_note)
             
             match mode:
                 case 1:
                     # lesson mode
                     print("----- Lesson mode -----")
+                    print("top_note: ", top_note)
                     lesson_mode(top_note)
                 case 2:
                     # test mode
@@ -172,10 +174,10 @@ try:
                 case _:
                     # default note playing - shows white light
                     print("----- Default mode -----")
-                    led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
-                    # led.turnOffExpired()
-                    # indices = [led.note_to_led_index[note] for note in notes]
-                    # led.multiColor(indices, color=Color(128,128,128))
+                    # led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+                    led.turnOffExpired()
+                    indices = [led.note_to_led_index[note] for note in notes]
+                    led.multiColor(indices, color=Color(128,128,128))
 
 except KeyboardInterrupt:
     # audio.cleanup()

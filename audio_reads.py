@@ -24,7 +24,7 @@ TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
 # initialise pyaudio
 p = pyaudio.PyAudio()
 
-FFT_SIZE = 4096
+FFT_SIZE = 6144
 SAMPLE_RATE = 44100
 # open stream
 buffer_size = FFT_SIZE
@@ -270,16 +270,23 @@ push_socket.connect("tcp://localhost:5556")
 
 print("*** starting recording")
 
-def add_message_to_buffer(message):
+message_buffer = collections.deque(maxlen=50)       
+
+def cleanup_buffer():
+    global message_buffer 
     now = datetime.now()
-    message_buffer.append((message, now))
     while message_buffer:
         _, timestamp = message_buffer[0]  # Check the oldest message
-        if now - timestamp > timedelta(seconds=0.3):
+        if now - timestamp > timedelta(seconds=0.6):
             message_buffer.popleft()
         else:
             break   
-message_buffer = collections.deque()       
+
+def add_message_to_buffer(message):
+    global message_buffer
+    now = datetime.now()
+    message_buffer.append((message, now))
+
 
 
 while True:
@@ -348,6 +355,8 @@ while True:
         count = 0
         
         #HPS
+        notes_hps = []
+        notes_hps_string = ""
         ## Uncomment to process a single chunk os a limited number os sequential chunks. 
         #for chunk in buffer_chunks[5: 6]:
         for chunk in buffer_chunks[0: 60]:
@@ -395,54 +404,57 @@ while True:
             # plt.show()
 
             count += 1
-            both_notes = []
-            note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
-            for pair in note_pairs:
-                letter1, letter2 = pair
-                # Check if the extracted letters match and append if conditions are met
-                if letter1 in notes_hps and letter2 in notes_librosa:
-                    #print(pair)
-                    both_notes.append(letter1)
-            for nl in notes_librosa:
-                if nl in notes_hps:
-                    both_notes.append(nl)
-            
-            #remove duplicates
-            # print("librosa: ", notes_librosa)
-            # print("hps: ", notes_hps)
-            both_notes = list(set(both_notes))
-            both_notes_string = " ".join(both_notes)
+        both_notes = []
+        note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
+        for pair in note_pairs:
+            letter1, letter2 = pair
+            # Check if the extracted letters match and append if conditions are met
+            if letter1 in notes_hps and letter2 in notes_librosa:
+                #print(pair)
+                both_notes.append(letter1)
+        for nl in notes_librosa:
+            if nl in notes_hps:
+                both_notes.append(nl)
         
+        #remove duplicates
+        print("librosa: ", notes_librosa)
+        print("hps: ", notes_hps)
+        both_notes = list(set(both_notes))
+        both_notes_string = " ".join(both_notes)
+    
 
-            try:
-                notes_string = socket.recv_string(zmq.NOBLOCK)  # Non-blocking receive
-                add_message_to_buffer(notes_string)
-            except zmq.Again:
-                # No message received, skip without blocking
-                pass
+        try:
+            notes_string = socket.recv_string(zmq.NOBLOCK)  # Non-blocking receive
+            add_message_to_buffer(notes_string)
+        except zmq.Again:
+            # No message received, skip without blocking
+            pass
 
-            if both_notes_string:
-                # print("Combined:" + both_notes_string)    
-            # Define the message buffer
-            
+        if both_notes_string:
+            print("Combined:" + both_notes_string)    
+        # Define the message buffer
+        
+        if both_notes_string:    
+            # print("Msg buffer: ", message_buffer)            
+            audio_set = set(both_notes_string.split())
+            correct_notes = set()
 
-            if both_notes_string:
-                # print("Msg buffer: ", message_buffer)            
-                audio_notes = both_notes_string.split()
-                # print("Buffer: ", message_buffer)
-                correct_notes = set()
-                for audio in audio_notes:
-                    
-                    for message, _ in message_buffer:
-                        if message == audio:
-                            correct_notes.add(audio)
-                            # print(f"Audio note '{audio}' exists in the buffer.")
+            for message, _ in message_buffer:
+                now = datetime.now()
+                time_diff = now - _
+                seconds_ago = time_diff.total_seconds()
+                # print(f"{message}: {seconds_ago} seconds ago")
+                if seconds_ago < 0.6:
+                    # Split the message string into a set of individual notes
+                    cv_set = set(message.split())
+                    # Check if all notes in cv_set are in audio_set
+                    if cv_set.issubset(audio_set):
+                        correct_notes.update(cv_set)
 
-            #         if not audio_note_found:
-            #             print(f"Audio note '{audio}' does not exist in the buffer.")
-                if correct_notes:
-                    print("Correct Notes: ", ' '.join(correct_notes))
-                    push_socket.send_string(' '.join(correct_notes))
+
+            if correct_notes:
+                print("Correct Notes: ", ' '.join(correct_notes))
+                push_socket.send_string(' '.join(correct_notes))
 
             if outputsink:
                 outputsink(signal, len(signal))
