@@ -83,7 +83,7 @@ const socket = io("http://127.0.0.1:5000");
 const letters = ["A", "B", "C", "D", "E", "F", "G"];
 const scales = {
   // Major Scales
-  "C Major": "C4 D4 E4 F4 G4 A4 B4 C5",
+  "C Major": "C3 D3 E3 F3 G3 A3 B3 C4",
   "D Major": "D3 E3 F#3 G3 A3 B3 C#4 D4",
   "E Major": "E3 F#3 G#3 A3 B3 C#4 D#4 E4",
   "F Major": "F3 G3 A3 A#3 C4 D4 E4 F4",
