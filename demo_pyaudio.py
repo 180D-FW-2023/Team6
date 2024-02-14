@@ -305,7 +305,7 @@ while True:
         if max_noise < 40:
             l = ""
             notes_librosa = []
-        #print("Librosa: " + l)
+        print("Librosa: " + l)
         if (max_noise > 3):
             if o(signal):
                 print("%f" % o.get_last_s())
@@ -320,6 +320,9 @@ while True:
         #HPS
         ## Uncomment to process a single chunk os a limited number os sequential chunks. 
         #for chunk in buffer_chunks[5: 6]:
+        notes_hps = []
+        notes_hps_string = ""
+        both_notes = []
         for chunk in buffer_chunks[0: 60]:
             #print("\n...Chunk: ", str(count))
                     
@@ -339,7 +342,7 @@ while True:
                 notes_hps.append(note_name)
 
             notes_hps_string = " ".join(notes_hps)
-            #print("HPS:" + notes_hps_string)
+            print("HPS:" + notes_hps_string)
 
 
 
@@ -365,39 +368,40 @@ while True:
             # plt.show()
 
             count += 1
-            both_notes = []
-            note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
-            for pair in note_pairs:
-                letter1, letter2 = pair
-                # Check if the extracted letters match and append if conditions are met
-                if letter1 in notes_hps and letter2 in notes_librosa:
-                    #print(pair)
-                    both_notes.append(letter1)
-            '''
-            if "C3" in notes_hps:
-                if "C♯3" not in notes_librosa:
-                    both_notes.append("C3")
-            if "D#3" in notes_hps:
-                if "D♯4" in notes_librosa:
-                    both_notes.append("D#3")
-            if "D3" in notes_hps:
-                if "D4" in notes_librosa:
-                    both_notes.append("D3")
-            if "E3" in notes_hps:
-                if "E4" in notes_librosa:
-                    both_notes.append("E3")
-            #if "D3" in notes_hps:
-                #both_notes.append("D3")
-            '''
 
-            for nl in notes_librosa:
-                if nl in notes_hps:
-                    both_notes.append(nl)
-            
-            #remove duplicates
-            both_notes = list(set(both_notes))
-            both_notes_string = " ".join(both_notes)
-            print("Combined:" + both_notes_string)           
+        both_notes = []
+        note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
+        for pair in note_pairs:
+            letter1, letter2 = pair
+            # Check if the extracted letters match and append if conditions are met
+            if letter1 in notes_hps and letter2 in notes_librosa:
+                #print(pair)
+                both_notes.append(letter1)
+        '''
+        if "C3" in notes_hps:
+            if "C♯3" not in notes_librosa:
+                both_notes.append("C3")
+        if "D#3" in notes_hps:
+            if "D♯4" in notes_librosa:
+                both_notes.append("D#3")
+        if "D3" in notes_hps:
+            if "D4" in notes_librosa:
+                both_notes.append("D3")
+        if "E3" in notes_hps:
+            if "E4" in notes_librosa:
+                both_notes.append("E3")
+        #if "D3" in notes_hps:
+            #both_notes.append("D3")
+        '''
+
+        for nl in notes_librosa:
+            if nl in notes_hps:
+                both_notes.append(nl)
+        
+        #remove duplicates
+        both_notes = list(set(both_notes))
+        both_notes_string = " ".join(both_notes)
+        print("Combined:" + both_notes_string)               
             
 
 
