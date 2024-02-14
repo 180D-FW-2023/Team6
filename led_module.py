@@ -15,7 +15,7 @@ LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 ################ LED CODE #####################
 
 recently_on = {i:None for i in range(87)}
-offset = 39
+offset = 27
 
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
 # Intialize the library (must be called once before other functions).
@@ -89,8 +89,9 @@ def setColorByIndex(index, color=(0,128,0)):
 
 def multiColor(indices, color = Color(128, 128, 128), on_time=0.5):
     now = datetime.now()
-    
+    print("setting multicolor")
     for index in indices:
+        print('poop: ', index)
         if not (index < offset or index >= LED_COUNT+offset):
             strip.setPixelColor(index-offset, color)
             recently_on[index] = now
@@ -102,7 +103,7 @@ def turnOffExpired():
     off_color = Color(0,0,0)
     
     for key, timestamp in recently_on.items():
-        if timestamp and now - timestamp > timedelta(seconds=0.5):     # if the LED has been on for more than 0.5 seconds
+        if timestamp and now - timestamp > timedelta(seconds=0.2):     # if the LED has been on for more than 0.5 seconds
             recently_on[key] = None
             strip.setPixelColor(key-offset, off_color)
     
