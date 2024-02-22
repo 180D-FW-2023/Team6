@@ -69,108 +69,74 @@ def add_chord():
 @app.route('/add-scale', methods=['POST'])
 def add_scale():
     content = request.json
-    result = db.scale.insert_one(content)
+    result = db.scales.insert_one(content)
     return jsonify({"message": "Document added", "document_id": str(result.inserted_id)})
+
+from bson import ObjectId
+
+# Helper function to convert ObjectId to string
+def serialize_document(document):
+    if document and "_id" in document:
+        document["_id"] = str(document["_id"])
+    return document
 
 @app.route('/get-chord', methods=['GET'])
 def get_chord_details():
-    # Get query parameters
     modality = request.args.get('modality', type=str)
     key = request.args.get('key', type=str)
-
-    # Normalize the input to match the case sensitivity of the database entries
-    modality = modality.lower().capitalize() if modality else modality  # Example: 'major' -> 'Major'
-    key = key.upper() if key else key  # Example: 'a' -> 'A'
-
-    # Construct the query
+    modality = modality.lower().capitalize() if modality else modality
+    key = key.upper() if key else key
     query = {'modality': modality, 'key': key} if modality and key else {}
-
     document = db.chords.find_one(query)
-
-    # Find the document
     if document:
-            # Extract the fields
-            results = document.get('results', [])
-            last_score = document.get('last_score')
-            overall_avg = document.get('overall_avg')
-            
-            # Prepare the response
-            response = {
-                'results': results,
-                'last_score': last_score,
-                'overall_avg': overall_avg
-            }
-            return jsonify(response)
+        document["_id"] = str(document["_id"])  # Serialize ObjectId to string
+        return jsonify(document)
     else:
         return jsonify({"error": "Document not found with the provided modality and key."}), 404
-    
+
+
 @app.route('/get-scale', methods=['GET'])
 def get_scale_details():
-    # Get query parameters
     modality = request.args.get('modality', type=str)
     key = request.args.get('key', type=str)
-
-    # Normalize the input to match the case sensitivity of the database entries
-    modality = modality.lower().capitalize() if modality else modality  # Example: 'major' -> 'Major'
-    key = key.upper() if key else key  # Example: 'a' -> 'A'
-
-    # Construct the query
+    modality = modality.lower().capitalize() if modality else modality
+    key = key.upper() if key else key
     query = {'modality': modality, 'key': key} if modality and key else {}
-
     document = db.scales.find_one(query)
-
-    # Find the document
     if document:
-            # Extract the fields
-            results = document.get('results', [])
-            last_score = document.get('last_score')
-            overall_avg = document.get('overall_avg')
-            
-            # Prepare the response
-            response = {
-                'results': results,
-                'last_score': last_score,
-                'overall_avg': overall_avg
-            }
-            return jsonify(response)
+        document["_id"] = str(document["_id"])  # Serialize ObjectId to string
+        return jsonify(document)
     else:
         return jsonify({"error": "Document not found with the provided modality and key."}), 404
+
     
 
 @app.route('/update_chord', methods=['POST'])
 def update_chord():
-    # Extract the data from the request's body
     data = request.get_json()
     modality = data.get('modality', '').capitalize()
     key = data.get('key', '').upper()
-    results = data.get('results')
-    last_score = data.get('last_score')
-    overall_avg = data.get('overall_avg')
 
     # Construct the query
     query = {'modality': modality, 'key': key}
     
-    # Find the document
-    document = db.chords.find_one(query)
-    
-    if document:
-        # Document exists, so update it
-        if results:
-            db.chords.update_one(query, {'$push': {'results': results}})
-        if last_score is not None:
-            db.chords.update_one(query, {'$set': {'last_score': last_score}})
-        if overall_avg is not None:
-            db.chords.update_one(query, {'$set': {'overall_avg': overall_avg}})
+    update_data = {}
+    if 'results' in data:
+        update_data['$push'] = {'results': {'$each': data['results']}}
+    if 'scores' in data:
+        update_data.setdefault('$push', {})['scores'] = {'$each': data['scores']}
+    if 'mistake_count' in data:
+        update_data.setdefault('$push', {})['mistake_count'] = {'$each': data['mistake_count']}
+    if 'attempts' in data:
+        update_data['$inc'] = {'attempts': data['attempts']}
+
+    result = db.chords.update_one(query, update_data)
+
+    if result.matched_count:
         return jsonify({"message": "Document updated"}), 200
     else:
-        # No document found, create a new one
-        new_document = {
-            'modality': modality,
-            'key': key,
-            'results': [results] if results else [],
-            'last_score': last_score,
-            'overall_avg': overall_avg
-        }
+        # If no document matches the query, create a new document
+        new_document = data
         db.chords.insert_one(new_document)
         return jsonify({"message": "New document created"}), 201
 

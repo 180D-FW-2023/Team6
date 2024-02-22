@@ -48,16 +48,29 @@
     </v-container>
     <v-container>
       <div><h1>Statistics</h1></div>
-      <div v-if="statInfo">{{ statInfo }}</div>
+      <div v-if="lastScale">{{ lastScale }}</div>
       <div v-else>Loading chord information...</div>
+      <Line :data="chartData" :options="chartOptions" :key="chartKey"  />
     </v-container>
   </v-app>
 </template>
 
 <script setup>
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js'
+import { Line } from 'vue-chartjs'
+
 import { ref, onMounted, watch } from "vue";
 import io from "socket.io-client";
-import axios from 'axios';
+import axios from "axios";
 import {
   VApp,
   VContainer,
@@ -77,9 +90,43 @@ const selectedLetter = ref("A");
 const dialog = ref(false);
 const selectedAction = ref("");
 const mqttData = ref(null);
-const statInfo = ref('');
+const lastScale = ref("");
 const socket = io("http://127.0.0.1:5000");
+const chartKey = ref(0);
+const chartData = ref({
+  labels: [],
+  datasets: [{
+    label: 'Your Label',
+    data: [],
+    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+    borderColor: 'rgba(54, 162, 235, 1)',
+    borderWidth: 1,
+  }]
+});
 
+const chartOptions = ref({
+  scales: {
+    y: {
+      beginAtZero: true,
+      suggestedMax: 100, // Adjust according to your scoring system
+    },
+    x: {
+      title: {
+        display: true,
+        text: 'Attempt Number'
+      }
+    }
+  },
+  plugins: {
+    legend: {
+      display: false, // Hide legend if not needed
+    },
+    title: {
+      display: true,
+      text: 'Scores Over Attempts'
+    }
+  }
+});
 const letters = ["A", "B", "C", "D", "E", "F", "G"];
 const scales = {
   // Major Scales
@@ -118,41 +165,80 @@ const chords = {
   "B Minor": "B3 D4 F#4",
 };
 
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+)
+
+const updateChartData = (scores) => {
+  console.log(scores);
+  if (!scores || scores.length === 0) return;
+
+  chartData.value.labels = scores.map((_, index) => `Attempt ${index + 1}`);
+  chartData.value.datasets[0].data = scores;
+
+  // This step is crucial for triggering reactivity when updating nested properties in Vue 3
+  chartData.value = { ...chartData.value };
+  chartKey.value++; // Increment the key to force re-render
+
+};
+
+
 const getStats = async (type, modality, key) => {
-  let endpoint = '';
-  if (type === 'Chord') {
-    endpoint = 'get-chord';
-  } else if (type === 'Scale') {
-    endpoint = 'get-scale';
+  let endpoint = "";
+  if (type === "Chord") {
+    endpoint = "get-chord";
+  } else if (type === "Scale") {
+    endpoint = "get-scale";
   }
 
   try {
     const response = await axios.get(`http://127.0.0.1:5000/${endpoint}`, {
       params: {
         modality: modality,
-        key: key
-      }
+        key: key,
+      },
     });
-    statInfo.value = JSON.stringify(response.data); // Update chordInfo with the response data
+    // Assuming response.data.results is the string from which you want to extract the last element
+    if (response.data && Array.isArray(response.data.results)) {
+      lastScale.value = response.data.results[response.data.results.length - 1];
+    } else {
+      lastScale.value = "No scale available"; // Fallback message
+    }
+    updateChartData(response.data.scores);
   } catch (error) {
     console.error(error);
-    statInfo.value = 'No stats available'; // Update chordInfo on error
+    lastScale.value = "No tests completed yet"; // Error message
   }
 };
-
-
-
 
 onMounted(() => {
   socket.on("mqtt_data", (data) => {
     mqttData.value = `Topic: ${data.topic}, Payload: ${data.payload}`;
   });
-  getStats(selectedOption.value, selectedType.value.toLowerCase(), selectedLetter.value);
+  getStats(
+    selectedOption.value,
+    selectedType.value.toLowerCase(),
+    selectedLetter.value
+  );
 });
 
-watch([selectedOption, selectedType, selectedLetter], () => {
-  getStats(selectedOption.value, selectedType.value.toLowerCase(), selectedLetter.value);
-}, { immediate: true }); // immediate: true ensures getStats runs on initial setup as well
+watch(
+  [selectedOption, selectedType, selectedLetter],
+  () => {
+    getStats(
+      selectedOption.value,
+      selectedType.value.toLowerCase(),
+      selectedLetter.value
+    );
+  },
+  { immediate: true }
+); // immediate: true ensures getStats runs on initial setup as well
 
 const openDialog = (action) => {
   selectedAction.value = action;
