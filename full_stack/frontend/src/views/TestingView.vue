@@ -48,7 +48,7 @@
     </v-container>
     <v-container>
       <div><h1>Statistics</h1></div>
-      <div v-if="lastScale">{{ lastScale }}</div>
+      <div v-if="lastScale">Last test: {{ lastScale }}</div>
       <div v-else>Loading chord information...</div>
       <Line :data="chartData" :options="chartOptions" :key="chartKey"  />
     </v-container>

@@ -32,6 +32,41 @@ app.config['MQTT_TLS_ENABLED'] = False  # Set True if your broker supports TLS
 lesson_topic = 'team6/lessons/results'
 testing_topic = 'team6/test/results'
 
+scales = {
+  "C Major": "C3 D3 E3 F3 G3 A3 B3 C4",
+  "D Major": "D3 E3 F#3 G3 A3 B3 C#4 D4",
+  "E Major": "E3 F#3 G#3 A3 B3 C#4 D#4 E4",
+  "F Major": "F3 G3 A3 A#3 C4 D4 E4 F4",
+  "G Major": "G3 A3 B3 C4 D4 E4 F#4 G4",
+  "A Major": "A3 B3 C#4 D4 E4 F#4 G#4 A4",
+  "B Major": "B3 C#4 D#4 E4 F#4 G#4 A#4 B4",
+
+  "A Minor": "A3 B3 C4 D4 E4 F4 G4 A4",
+  "B Minor": "B3 C#4 D4 E4 F#4 G4 A4 B4",
+  "C Minor": "C3 D3 D#3 F3 G3 G#3 A#3 C4",
+  "D Minor": "D3 E3 F3 G3 A3 A#3 C4 D4",
+  "E Minor": "E3 F#3 G3 A3 B3 C4 D4 E4",
+  "F Minor": "F3 G3 G#3 A#3 C4 C#4 D#4 F4",
+  "G Minor": "G3 A3 A#3 C4 D4 D#4 F4 G4",
+}
+
+chords = {
+  "C Major": "C3 E3 G3",
+  "C Minor": "C3 D#3 G3",
+  "D Major": "D3 F#3 A3",
+  "D Minor": "D3 F3 A3",
+  "E Major": "E3 G#3 B3",
+  "E Minor": "E3 G3 B3",
+  "F Major": "F3 A3 C4",
+  "F Minor": "F3 G#3 C4",
+  "G Major": "G3 B3 D4",
+  "G Minor": "G3 A#3 D4",
+  "A Major": "A3 C#4 E4",
+  "A Minor": "A3 C4 E4",
+  "B Major": "B3 D#4 F#4",
+  "B Minor": "B3 D4 F#4",
+}
+
 mqtt_client = Mqtt(app)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for all domains
 
@@ -141,7 +176,12 @@ def update_chord():
         return jsonify({"message": "New document created"}), 201
 
     
-
+def check_result(type, test, result):
+    if type == 'chord':
+        pass
+    elif type == 'scale':
+        pass
+    return
 
 if __name__ == '__main__':
     socketio.run(app, host='127.0.0.1', port=5000)
