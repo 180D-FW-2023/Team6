@@ -417,8 +417,8 @@ while True:
                 both_notes.append(nl)
         
         #remove duplicates
-        print("librosa: ", notes_librosa)
-        print("hps: ", notes_hps)
+        # print("librosa: ", notes_librosa)
+        # print("hps: ", notes_hps)
         both_notes = list(set(both_notes))
         both_notes_string = " ".join(both_notes)
     
@@ -430,8 +430,8 @@ while True:
             # No message received, skip without blocking
             pass
 
-        if both_notes_string:
-            print("Combined:" + both_notes_string)    
+        # if both_notes_string:
+        #     print("Combined:" + both_notes_string)    
         # Define the message buffer
         
         if both_notes_string:    

@@ -112,7 +112,7 @@ def test_mode(top_note):
     print("TARGET ", target_notes)
     print("RECORDED ", played_notes)
     
-    if testModeCheckDup(top_note):
+    if led.testModeCheckDup(top_note, time_diff = 1.5):
         return
     
     
@@ -175,7 +175,7 @@ try:
                     # default note playing - shows white light
                     print("----- Default mode -----")
                     # led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
-                    led.turnOffExpired()
+                    led.turnOffExpired(on_time = 0.2)
                     indices = [led.note_to_led_index[note] for note in notes]
                     led.multiColor(indices, color=Color(128,128,128))
 
