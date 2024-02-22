@@ -120,8 +120,8 @@ while True:
     if max_noise < 100:
         l = ""
     print(l)
-    #m = l + " " + str(i)
-    #print(m)
+    m = l + " " + str(i)
+    print(m)
     client.publish('your_topic', l, qos=1)
 
     #get onset of notes and calculate tempo
