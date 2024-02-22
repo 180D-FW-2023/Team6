@@ -1,6 +1,6 @@
 ##!/bin/bash
 
-python3 /home/pi/cv_writes.py &
-python3 /home/pi/audio_reads.py &
-sudo python3 /home/pi/main_controller.py &
+python /home/pi/Team6/cv_writes.py &
+python /home/pi/Team6/audio_reads.py &
+sudo python /home/pi/Team6/main_controller.py &
 wait
