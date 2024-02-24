@@ -51,7 +51,10 @@
       <div v-if="lastScale">Last test: {{ lastScale }}</div>
       <div v-else>Loading chord information...</div>
       <Line :data="chartData" :options="chartOptions" :key="chartKey"  />
+      <img src="http://localhost:5000//uploads/image.jpg">
+      <v-img v-if="selectedImageUrl" :src="selectedImageUrl.value"></v-img>
     </v-container>
+
   </v-app>
 </template>
 
@@ -217,6 +220,21 @@ const getStats = async (type, modality, key) => {
   }
 };
 
+const selectedImageUrl = ref('');
+
+const pollForNewImage = async () => {
+  try {
+    const response = await axios.get('http://127.0.0.1:5000/check_for_updates');
+    if (response.data.imageUrl) {
+      selectedImageUrl.value = response.data.imageUrl;
+      console.log("Entered");
+      console.log(selectedImageUrl.value);
+    }
+  } catch (error) {
+    console.error('Error polling for new image:', error);
+  }
+};
+
 onMounted(() => {
   socket.on("mqtt_data", (data) => {
     mqttData.value = `Topic: ${data.topic}, Payload: ${data.payload}`;
@@ -226,6 +244,10 @@ onMounted(() => {
     selectedType.value.toLowerCase(),
     selectedLetter.value
   );
+  const pollInterval = 2000; // Poll every 2 seconds
+  setInterval(() => {
+    pollForNewImage();
+  }, pollInterval);
 });
 
 watch(

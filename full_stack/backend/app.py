@@ -1,7 +1,15 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_mqtt import Mqtt
 from flask_socketio import SocketIO
 from flask_cors import CORS
+import cv2
+import time
+import math as m
+import mediapipe as mp
+import time
+import paho.mqtt.client as mqtt
+import numpy as np
+import os
 
 
 from pymongo.mongo_client import MongoClient
@@ -183,5 +191,47 @@ def check_result(type, test, result):
         pass
     return
 
+from werkzeug.utils import secure_filename
+from PIL import Image
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['BASE_URL'] = 'http://localhost:5000/'
+latest_image_url = None
+
+@app.route('/upload_frame', methods=['POST'])
+def upload():
+    global latest_image_url
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image part'}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+        
+    filename = secure_filename(file.filename)
+    # Change the file extension to .jpg to ensure the file is saved as a JPEG
+    filename_jpeg = os.path.splitext(filename)[0] + '.jpg'
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename_jpeg)
+    
+    # Convert and save the image as a JPEG
+    image = Image.open(file.stream)
+    image.save(file_path, 'JPEG')
+    latest_image_url = f"{app.config['BASE_URL']}/uploads/{filename_jpeg}"
+    
+    return jsonify({'message': 'Image received successfully'})
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+@app.route('/check_for_updates')
+def check_for_updates():
+    if latest_image_url:
+        return jsonify({'imageUrl': latest_image_url}), 200
+    else:
+        return jsonify({'imageUrl': None}), 200
+    
 if __name__ == '__main__':
     socketio.run(app, host='127.0.0.1', port=5000)
