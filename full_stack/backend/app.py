@@ -39,6 +39,7 @@ app.config['MQTT_KEEPALIVE'] = 5  # Set KeepAlive time in seconds
 app.config['MQTT_TLS_ENABLED'] = False  # Set True if your broker supports TLS
 lesson_topic = 'team6/lessons/results'
 testing_topic = 'team6/test/results'
+last_sent_test_msg = None
 
 scales = {
   "C Major": "C3 D3 E3 F3 G3 A3 B3 C4",
@@ -78,6 +79,11 @@ chords = {
 mqtt_client = Mqtt(app)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for all domains
 
+def process_test_result(payload):
+    global last_sent_test_msg
+    print(last_sent_test_msg)
+    print(f"Processing message from testing_topic: {payload}")
+
 @mqtt_client.on_connect()
 def handle_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -95,13 +101,21 @@ def handle_mqtt_message(client, userdata, message):
             payload=message.payload.decode()
         )
         print('Received message on topic: {topic} with payload: {payload}'.format(**data))
+        if message.topic == testing_topic:
+            process_test_result(data['payload'])
         socketio.emit('mqtt_data', data)  # Emit data to SocketIO clients
+
 
 @socketio.on('publish_mqtt')
 def handle_publish_mqtt(data):
+    global last_sent_test_msg
     topic = data['topic']
     message = data['payload']
+    if topic == 'team6/test':
+        last_sent_test_msg = message
     mqtt_client.publish(topic, message)
+
+
 
 @app.route('/add-chord', methods=['POST'])
 def add_chord():
