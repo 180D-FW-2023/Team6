@@ -81,7 +81,26 @@ socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for all domains
 
 def process_test_result(payload):
     global last_sent_test_msg
-    print(last_sent_test_msg)
+    # print(last_sent_test_msg)
+    dict_key = ' '.join(last_sent_test_msg[:2].split())
+    modality = last_sent_test_msg[1].split()
+    correct_notes = []
+    type = ""
+    if 'Scale' in last_sent_test_msg:
+        type = 'scale'
+        correct_notes = scales[dict_key].replace('*', '#').split()
+    elif 'Chord' in last_sent_test_msg:
+        type = 'chord'
+        correct_notes = chords[dict_key].replace('*', '#').split()
+
+    matching_indices = [i for i, item in enumerate(correct_notes) if item in payload]
+    score = len(matching_indices) // len(correct_notes) * 100
+    update_record_in_db(last_sent_test_msg[0], type, modality, payload, score)
+    print(matching_indices)
+    socketio.emit('update')
+    return matching_indices
+
+
     print(f"Processing message from testing_topic: {payload}")
 
 @mqtt_client.on_connect()
@@ -109,10 +128,11 @@ def handle_mqtt_message(client, userdata, message):
 @socketio.on('publish_mqtt')
 def handle_publish_mqtt(data):
     global last_sent_test_msg
+    print(data)
     topic = data['topic']
     message = data['payload']
     if topic == 'team6/test':
-        last_sent_test_msg = message
+        last_sent_test_msg = data['key']
     mqtt_client.publish(topic, message)
 
 
@@ -168,34 +188,17 @@ def get_scale_details():
 
     
 
-@app.route('/update_chord', methods=['POST'])
-def update_chord():
-    data = request.get_json()
-    modality = data.get('modality', '').capitalize()
-    key = data.get('key', '').upper()
+def update_record_in_db(key, type_, modality, new_result, new_score):
+    collection = db[type_.lower()]
+    update_response = collection.update_one(
+        {'key': key, 'modality': modality},
+        {
+            '$push': {'results': new_result, 'scores': new_score},
+            '$inc': {'attempts': 1}
+        }
+    )
+    return update_response
 
-    # Construct the query
-    query = {'modality': modality, 'key': key}
-    
-    update_data = {}
-    if 'results' in data:
-        update_data['$push'] = {'results': {'$each': data['results']}}
-    if 'scores' in data:
-        update_data.setdefault('$push', {})['scores'] = {'$each': data['scores']}
-    if 'mistake_count' in data:
-        update_data.setdefault('$push', {})['mistake_count'] = {'$each': data['mistake_count']}
-    if 'attempts' in data:
-        update_data['$inc'] = {'attempts': data['attempts']}
-
-    result = db.chords.update_one(query, update_data)
-
-    if result.matched_count:
-        return jsonify({"message": "Document updated"}), 200
-    else:
-        # If no document matches the query, create a new document
-        new_document = data
-        db.chords.insert_one(new_document)
-        return jsonify({"message": "New document created"}), 201
 
     
 def check_result(type, test, result):

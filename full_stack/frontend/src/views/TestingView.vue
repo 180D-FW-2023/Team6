@@ -244,6 +244,14 @@ onMounted(() => {
     selectedType.value.toLowerCase(),
     selectedLetter.value
   );
+  socket.on("emit", () => {
+    getStats(
+    selectedOption.value,
+    selectedType.value.toLowerCase(),
+    selectedLetter.value
+  );
+    this.$forceUpdate();
+  })
   const pollInterval = 2000; // Poll every 2 seconds
   setInterval(() => {
     pollForNewImage();
@@ -273,11 +281,13 @@ const openDialog = (action) => {
 
   // Find the scale in the dictionary
   const scale = scales[key];
+  console.log(message);
+  console.log(scale);
 
   // Determine the topic based on the action
   const topic = action === "Test" ? "team6/test" : "team6/lesson";
   // Emit the message on the socket
-  socket.emit("publish_mqtt", { topic: topic, payload: scale });
+  socket.emit("publish_mqtt", { topic: topic, payload: scale, key: message});
 };
 </script>
 
