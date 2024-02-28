@@ -30,7 +30,9 @@ def findAngleArm(P1_x, P1_y, P2_x, P2_y, P3_x, P3_y):
     P12 = m.sqrt((P1_x - P2_x)**2 + (P1_y - P2_y)**2)
     P13 = m.sqrt((P1_x - P3_x)**2 + (P1_y - P3_y)**2)
     P23 = m.sqrt((P2_x - P3_x)**2 + (P2_y - P3_y)**2)
-    theta = m.acos((P12**2 + P23**2 - P13**2) / (2 * P12 * P23))
+    #prevent division by 0
+    denom = max((2 * P12 * P23), 1e-4)
+    theta = m.acos((P12**2 + P23**2 - P13**2) / denom)
     degree = int(180/m.pi)*theta
     return degree
 
@@ -95,7 +97,7 @@ while cap.isOpened():
     lm = keypoints.pose_landmarks
     lmPose = mp_pose.PoseLandmark
 
-    if not lm:
+    if lm is None:
         continue
     """Getting the facing direction"""
     if count == 0:
@@ -149,7 +151,7 @@ while cap.isOpened():
         angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination))
 
         # Determine whether good posture or bad posture.
-        if neck_inclination < 40 and torso_inclination < 10:
+        if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 110 and arm_inclination < 150:
             bad_posture_start_time = None
             bad_posture_detected = False
             cv2.putText(image, angle_text_string, (10, 30), font, 0.9, light_green, 2)
@@ -239,7 +241,7 @@ while cap.isOpened():
         angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination))
 
         # Determine whether good posture or bad posture.
-        if neck_inclination < 40 and torso_inclination < 10:
+        if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 110 and arm_inclination < 150:
             bad_posture_start_time = None
             bad_posture_detected = False
             cv2.putText(image, angle_text_string, (10, 30), font, 0.9, light_green, 2)
