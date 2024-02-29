@@ -210,8 +210,8 @@ cap = cv2.VideoCapture("/dev/video0")
 ref_img = True
 prev_notes = []
 print("starting loop", cap)
-HSV_color_1 = (29, 58, 201)
-HSV_color_2 = (174, 131, 201)
+HSV_color_1 = (174, 131, 201)
+HSV_color_2 = (29, 58, 201)
 
 count = 0
 CALIBRATION_FRAMES = 100
