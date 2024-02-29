@@ -125,6 +125,3 @@ def testModeCheckDup(note, time_diff=1):
     # played and havent timed out
     return True
         
-    
-
-        
