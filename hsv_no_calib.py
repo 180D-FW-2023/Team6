@@ -3,14 +3,13 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 import time
 
-def apply_threshold_hsv(roi, hsv_color, threshold=10, threshold_s=35, threshold_v=80):
+def apply_threshold_hsv(roi, hsv_color, threshold_h=10, threshold_s=35, threshold_v=80):
     """Apply color thresholding in HSV color space to isolate specific color ranges in the ROI."""
-    # Adjust the saturation (S) and value (V) thresholds based on lighting conditions
-    lower_limit = np.array([max(0, hsv_color[0] - threshold), max(0, hsv_color[1] - threshold_s), max(0, hsv_color[2] - threshold_v)])
-    upper_limit = np.array([min(179, hsv_color[0] + threshold), min(255, hsv_color[1] + threshold_s), min(255, hsv_color[2] + threshold_v)])
-    mask = cv2.inRange(roi, lower_limit, upper_limit)
+    
+    lower_bound = np.array([max(0, hsv_color[0] - threshold_h), max(0, hsv_color[1] - threshold_s), max(0, hsv_color[2] - threshold_v)])
+    upper_bound = np.array([min(180, hsv_color[0] + threshold_h), min(255, hsv_color[1] + threshold_s), min(255, hsv_color[2] + threshold_v)])
+    mask = cv2.inRange(roi, lower_bound, upper_bound)
     return mask
-
 
 def find_clusters(mask):
     """Find clusters in the mask using DBSCAN."""
@@ -31,7 +30,6 @@ def find_clusters(mask):
             
     return cluster_dict
 
-
 def filter_noise_clusters(cluster_dict, size_threshold):
     """
     Filters clusters based on a minimum size threshold.
@@ -51,7 +49,6 @@ def filter_noise_clusters(cluster_dict, size_threshold):
             filtered_clusters[key] = points
             
     return filtered_clusters
-
 
 def generate_error_bounds_for_clusters(cluster_dict_black, cluster_dict_white, initial_threshold=5):
     """
@@ -102,7 +99,6 @@ def calibrate_error_bounds(error_keys, error_bounds):
 
     return updated_bounds
 
-
 def filter_keys(cluster_dict, roi, inf_roi, error_bounds):
     """
     Calculates error percentages for clusters and filters keys based on error bounds.
@@ -134,33 +130,33 @@ def filter_keys(cluster_dict, roi, inf_roi, error_bounds):
             error_keys.append(key)
     return error_keys
 
-
 def reference_frame(frame, mask_bound, hsv_color_1, hsv_color_2, threshold=40):
     x1, y1, x2, y2 = mask_bound
     roi = frame[y1:y2, x1:x2]
     roi_hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
 
     # black
-    mask_1 = apply_threshold_hsv(roi_hsv, hsv_color_1, threshold)
+    mask_1 = apply_threshold_hsv(roi_hsv, hsv_color_1)
     roi[mask_1 != 0] = [255, 0, 0]
     cluster_dict_1 = find_clusters(mask_1)
 
     # white
-    mask_2 = apply_threshold_hsv(roi_hsv, hsv_color_2, threshold)
+    mask_2 = apply_threshold_hsv(roi_hsv, hsv_color_2)
     roi[mask_2 != 0] = [255, 0, 255]
     cluster_dict_2 = find_clusters(mask_2)
 
     cluster_dict_1 = filter_noise_clusters(cluster_dict_1, 100)
     cluster_dict_2 = filter_noise_clusters(cluster_dict_2, 100)
 
-    #### TODO: Check if this improves the latency otherwise delete it 
-    
+    ###### Check if this improves the latency otherwise delete it #########
     # for cluster_idx in cluster_dict_1:
     #     cluster_dict_1[cluster_idx] = np.array(cluster_dict_1[cluster_idx])
 
     # for cluster_idx in cluster_dict_2:
     #     cluster_dict_2[cluster_idx] = np.array(cluster_dict_2[cluster_idx])
     
+    #######################################################################
+
     return roi, cluster_dict_1, cluster_dict_2
     
 
@@ -170,11 +166,11 @@ def inference_frame(inf_frame, mask_bound, hsv_color_1, hsv_color_2, cluster_dic
     inf_roi_hsv = cv2.cvtColor(inf_roi, cv2.COLOR_BGR2HSV)
 
     # black
-    mask_1 = apply_threshold_hsv(inf_roi_hsv, hsv_color_1, threshold)
+    mask_1 = apply_threshold_hsv(inf_roi_hsv, hsv_color_1)
     inf_roi[mask_1 != 0] = [255, 0, 0]
 
     # white
-    mask_2 = apply_threshold_hsv(inf_roi_hsv, hsv_color_2, threshold)
+    mask_2 = apply_threshold_hsv(inf_roi_hsv, hsv_color_2)
     inf_roi[mask_2 != 0] = [255, 0, 255]
 
     black_error_keys = filter_keys(cluster_dict_1, roi, inf_roi, error_bound_1)
@@ -185,7 +181,6 @@ def inference_frame(inf_frame, mask_bound, hsv_color_1, hsv_color_2, cluster_dic
 
 white_keys = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 black_keys = ['C#', 'D#', 'F#', 'G#', 'A#']
-
 
 def encode_to_scale(values, scale):
     encoded_notes = []
@@ -230,7 +225,8 @@ while cap.isOpened():
         all_notes = encoded_notes_white + encoded_notes_black
         
         if(all_notes):
-            print(all_notes)
+            # print(all_notes)
+            pass
 
         for keys in black_error_keys:
             for i in cluster_dict_1[keys]:
