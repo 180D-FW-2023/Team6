@@ -48,8 +48,10 @@
     </v-container>
     <v-container>
       <div><h1>Statistics</h1></div>
-      <div v-if="lastScale">Last test: {{ lastScale }}</div>
-      <div v-else>Loading chord information...</div>
+      <span v-for="(value, index) in lastResult" :key="index"
+         :class="{'item-style': true, 'text-green': lastCorrectIndices[index] === 0, 'text-red': lastCorrectIndices[index] === 1}">
+      {{ value }}
+    </span>
       <Line :data="chartData" :options="chartOptions" :key="chartKey"  />
       <img src="http://localhost:5000//uploads/image.jpg">
       <v-img v-if="selectedImageUrl" :src="selectedImageUrl.value"></v-img>
@@ -93,7 +95,8 @@ const selectedLetter = ref("A");
 const dialog = ref(false);
 const selectedAction = ref("");
 const mqttData = ref(null);
-const lastScale = ref("");
+const lastResult = ref([]);
+const lastCorrectIndices = ref([]);
 const socket = io("http://127.0.0.1:5000");
 const chartKey = ref(0);
 const chartData = ref({
@@ -208,15 +211,16 @@ const getStats = async (type, modality, key) => {
       },
     });
     // Assuming response.data.results is the string from which you want to extract the last element
-    if (response.data && Array.isArray(response.data.results)) {
-      lastScale.value = response.data.results[response.data.results.length - 1];
+    if (response.data && Array.isArray(response.data.results) && Array.isArray(response.data.correct_indices)) {
+      lastResult.value = response.data.results[response.data.results.length - 1].split(' ');
+      lastCorrectIndices.value = response.data.correct_indices
     } else {
-      lastScale.value = "No scale available"; // Fallback message
+      lastResult.value = []; // Fallback message
     }
     updateChartData(response.data.scores);
   } catch (error) {
     console.error(error);
-    lastScale.value = "No tests completed yet"; // Error message
+    lastResult.value = []; // Error message
   }
 };
 
@@ -292,5 +296,16 @@ const openDialog = (action) => {
 </script>
 
 <style scoped>
-/* Add your styles here */
+.text-green {
+  color: green;
+}
+
+.text-red {
+  color: red;
+}
+
+.item-style {
+  display: inline-block; /* or 'inline', depending on your needs */
+  margin-right: 10px; /* Adjust spacing between items as needed */
+}
 </style>

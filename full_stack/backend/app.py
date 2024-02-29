@@ -95,7 +95,7 @@ def process_test_result(payload):
 
     matching_indices = [i for i, item in enumerate(correct_notes) if item in payload]
     score = len(matching_indices) // len(correct_notes) * 100
-    update_record_in_db(last_sent_test_msg[0], type, modality, payload, score)
+    update_record_in_db(last_sent_test_msg[0], type, modality, payload, score, matching_indices)
     print(matching_indices)
     socketio.emit('update')
     return matching_indices
@@ -128,7 +128,6 @@ def handle_mqtt_message(client, userdata, message):
 @socketio.on('publish_mqtt')
 def handle_publish_mqtt(data):
     global last_sent_test_msg
-    print(data)
     topic = data['topic']
     message = data['payload']
     if topic == 'team6/test':
@@ -188,12 +187,13 @@ def get_scale_details():
 
     
 
-def update_record_in_db(key, type_, modality, new_result, new_score):
+def update_record_in_db(key, type_, modality, new_result, new_score, correct_indices):
     collection = db[type_.lower()]
     update_response = collection.update_one(
         {'key': key, 'modality': modality},
         {
             '$push': {'results': new_result, 'scores': new_score},
+            '$set': {'correct_indices': correct_indices},
             '$inc': {'attempts': 1}
         }
     )
