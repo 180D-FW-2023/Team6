@@ -1,18 +1,8 @@
-#import libraries
-import sounddevice as sd
-from scipy.io.wavfile import write
-from scipy.io import wavfile
-import librosa
-
-from collections import OrderedDict
-import matplotlib.pyplot as plt
-import numpy as np
-np.set_printoptions(threshold=np.inf)
-
-import time
 import paho.mqtt.client as mqtt
-import led_control as led
+import led_module as led
+# import audio_module as audio
 from rpi_ws281x import Color
+import zmq
 
 '''
 modes:
@@ -24,13 +14,6 @@ modes:
 target_notes = []
 played_notes = []
 mode = 0 
-
-################ LIBROSA SETUP #####################
-
-fs = 32000  # Sample rate
-seconds = 0.1 # Duration of recording
-record = 1 #whether or not to record
-prev_l = ""
 
 ################## MQTT SETUP #####################
 
@@ -71,7 +54,7 @@ def on_message(client, userdata, message):
         case "team6/lesson":
             mode = 1
             # set first color to blue
-            led.showOneColorOnly(led.note_to_led_index_web[target_notes[0]], color=Color(0,0,128))
+            led.showOneColorOnly(led.note_to_led_index[target_notes[0]], color=Color(0,0,128))
         case "team6/test":
             mode = 2
         case _:
@@ -106,7 +89,7 @@ def lesson_mode(top_note):
     
     if top_note == target_notes[len(played_notes)]:
         print("Correct!")
-        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,128,0))
+        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
         played_notes.append(notes[0])
     else:
         print("Wrong!")
@@ -120,7 +103,7 @@ def lesson_mode(top_note):
         target_notes = []
     else:
         # sets next note to blue
-        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,0,128))
+        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,0,128))
 
 
 def test_mode(top_note):
@@ -129,12 +112,18 @@ def test_mode(top_note):
     print("TARGET ", target_notes)
     print("RECORDED ", played_notes)
     
+    if led.testModeCheckDup(top_note, time_diff = 1.5):
+        return
+    
+    
     if top_note == target_notes[len(played_notes)]:
         print("Correct!")
-        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(0,128,0))
+        led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(0,128,0))
+        # led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
     else:
         print("Wrong!")
-        led.setColorByIndex(led.note_to_led_index_web[target_notes[len(played_notes)]], color=Color(128,0,0))
+        led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(128,0,0))
+        # led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(128,0,0))
     
     played_notes.append(top_note)
     
@@ -150,64 +139,33 @@ def test_mode(top_note):
         played_notes = []
         target_notes = []
 
+context = zmq.Context()
+# Socket to subscribe to messages
+subscriber = context.socket(zmq.PULL)
+subscriber.bind("tcp://*:5556")
 
 try:
     while True:
-        #record audio buffer
-        if (record == 1):
-            myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
-            sd.wait()  # Wait until recording is finished
-            write('output.wav', fs, myrecording)  # Save as WAV file 
-
-
-        sr, data = wavfile.read('output.wav')
-
-        #filter audio buffer
-
-        y = np.asarray(data).astype(float)
+        l = ""
+        try:
+            l = subscriber.recv_string(zmq.NOBLOCK)  # Non-blocking receive
+        except zmq.Again:
+            # No message received, skip without blocking
+            pass
         
-        max_noise = np.max(np.abs(librosa.stft(y)))
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y)), ref=np.max)
-        mask = (oldD[:, -10:-1] > -21).all(1)
-        blank = -80
-        newD = np.full_like(oldD, blank)
-        newD[mask] = oldD[mask]
-        newS=librosa.db_to_amplitude(newD)
-
-        #get pitches from filtered audio
-        pitches, magnitudes = librosa.piptrack(S=newS, sr=sr)
-        pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
-        if len(pitches_final) > 0:
-            notes = librosa.hz_to_note(pitches_final)
-            notes = list(OrderedDict.fromkeys(notes))
-        else:
-            notes = ""
+        if not l:
+            continue
         
-        l = " ".join(notes)
-        first_or_None = ""
-        if len(notes) > 0:
-            first_or_None = notes[0]
-        else:
-            first_or_None = ""
-        
-        
-        #print(first_or_None)
-        if max_noise < 100:
-            l = ""
-        
-        prev_l = l
-
         notes = [note.strip().upper() for note in l.split()]
         top_note = notes[0] if notes else None
 
         if top_note:
             
-            print("Curr Note: ", top_note)
-            
             match mode:
                 case 1:
                     # lesson mode
                     print("----- Lesson mode -----")
+                    print("top_note: ", top_note)
                     lesson_mode(top_note)
                 case 2:
                     # test mode
@@ -216,9 +174,13 @@ try:
                 case _:
                     # default note playing - shows white light
                     print("----- Default mode -----")
-                    led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+                    # led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
+                    led.turnOffExpired(on_time = 0.2)
+                    indices = [led.note_to_led_index[note] for note in notes]
+                    led.multiColor(indices, color=Color(128,128,128))
 
 except KeyboardInterrupt:
+    # audio.cleanup()
     led.colorWipeAll(Color(128,0,0), 50)
     led.colorWipeAll(Color(0,0,0), 50)
     client.disconnect
