@@ -209,7 +209,8 @@ def check_result(type, test, result):
     return
 
 from werkzeug.utils import secure_filename
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
+
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['BASE_URL'] = 'http://localhost:5000/'
@@ -222,10 +223,10 @@ def upload():
         return jsonify({'error': 'No image part'}), 400
     
     file = request.files['image']
+    print(request.form['text'])
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     
-        
     filename = secure_filename(file.filename)
     # Change the file extension to .jpg to ensure the file is saved as a JPEG
     filename_jpeg = os.path.splitext(filename)[0] + '.jpg'
@@ -233,6 +234,15 @@ def upload():
     
     # Convert and save the image as a JPEG
     image = Image.open(file.stream)
+    draw = ImageDraw.Draw(image)
+
+    # Define the text properties
+    font = ImageFont.truetype("arial.ttf", 20)  # You may need to adjust the font path
+    text = request.form['text']
+    text_position = (50, 50)
+    text_color = "red"
+
+    draw.text(text_position, text, fill=text_color, font=font)
     image.save(file_path, 'JPEG')
     latest_image_url = f"{app.config['BASE_URL']}/uploads/{filename_jpeg}"
     
