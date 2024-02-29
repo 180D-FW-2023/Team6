@@ -10,279 +10,189 @@ socket = context.socket(zmq.PUSH)
 
 # Bind the socket to a TCP address, with a port number (e.g., 5555)
 socket.bind("tcp://*:5555")
+last_send_time = datetime.now() - timedelta(seconds=0.5)
 
 
-# create hex_color_picker
+###################### SET UP ######################
 
-def hex_to_bgr(hex_color):
-    hex_color = hex_color.lstrip('#')
-    lv = len(hex_color)
-    return tuple(int(hex_color[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))[::-1]
+def apply_threshold_hsv(roi, hsv_color, threshold_h=10, threshold_s=35, threshold_v=80):
+    """Apply color thresholding in HSV color space to isolate specific color ranges in the ROI."""
+    
+    lower_bound = np.array([max(0, hsv_color[0] - threshold_h), max(0, hsv_color[1] - threshold_s), max(0, hsv_color[2] - threshold_v)])
+    upper_bound = np.array([min(180, hsv_color[0] + threshold_h), min(255, hsv_color[1] + threshold_s), min(255, hsv_color[2] + threshold_v)])
+    mask = cv2.inRange(roi, lower_bound, upper_bound)
+    return mask
 
+def find_clusters(mask):
+    """Find clusters in the mask using DBSCAN."""
+    
+    y_coord, x_coord = np.where(mask != 0)
+    if len(y_coord) == 0:
+        return {}  # Return an empty dict if no points found
+    
+    coord_array = np.stack((y_coord, x_coord), axis=-1)
+    sorted_array = coord_array[coord_array[:, 1].argsort()]
+    dbscan = DBSCAN(eps=5, min_samples=10)
+    clusters = dbscan.fit_predict(sorted_array)
 
-def reference_frame(frame, mask_bound, hex_color_1, hex_color_2, threshold=40):
-    x1, y1, x2, y2 = mask_bound
-    roi = frame[y1:y2, x1:x2]
+    cluster_dict = {}
+    for point, cluster_idx in zip(sorted_array, clusters):
+        if cluster_idx != -1:
+            cluster_dict.setdefault(cluster_idx, []).append(point.tolist())
+            
+    return cluster_dict
 
-    # black
-    bgr_color_1 = hex_to_bgr(hex_color_1)  # "#C8CE7B"
-    lower_bound_1 = np.array(
-        [max(0, bgr_color_1[0] - threshold), max(0, bgr_color_1[1] - threshold), max(0, bgr_color_1[2] - threshold)])
-    upper_bound_1 = np.array([min(255, bgr_color_1[0] + threshold), min(255, bgr_color_1[1] + threshold),
-                              min(255, bgr_color_1[2] + threshold)])
-    mask_1 = cv2.inRange(roi, lower_bound_1, upper_bound_1)
+def filter_noise_clusters(cluster_dict, size_threshold):
+    """
+    Filters clusters based on a minimum size threshold.
 
-    y_coord_1, x_coord_1 = np.where(mask_1 != 0)
-    roi[mask_1 != 0] = [255, 0, 0]
-    coord_array_1 = np.stack((y_coord_1, x_coord_1), axis=-1)
-    sorted_array_1 = coord_array_1[coord_array_1[:, 1].argsort()]
+    Parameters:
+    - cluster_dict (dict): A dictionary where each key represents a cluster index,
+      and the value is a list of points belonging to that cluster.
+    - size_threshold (int): The minimum number of points a cluster must have to be included.
 
-    # white
-    bgr_color_2 = hex_to_bgr(hex_color_2)  # "#C8CE7B"
-    lower_bound_2 = np.array(
-        [max(0, bgr_color_2[0] - threshold), max(0, bgr_color_2[1] - threshold), max(0, bgr_color_2[2] - threshold)])
-    upper_bound_2 = np.array([min(255, bgr_color_2[0] + threshold), min(255, bgr_color_2[1] + threshold),
-                              min(255, bgr_color_2[2] + threshold)])
-    mask_2 = cv2.inRange(roi, lower_bound_2, upper_bound_2)
+    Returns:
+    - dict: A new dictionary containing only the clusters that meet the size threshold.
+    """
+    
+    filtered_clusters = {}
+    for key, points in cluster_dict.items():
+        if len(points) > size_threshold:
+            filtered_clusters[key] = points
+            
+    return filtered_clusters
 
-    y_coord_2, x_coord_2 = np.where(mask_2 != 0)
-    roi[mask_2 != 0] = [0, 0, 255]
-    coord_array_2 = np.stack((y_coord_2, x_coord_2), axis=-1)
-    sorted_array_2 = coord_array_2[coord_array_2[:, 1].argsort()]
+def generate_error_bounds_for_clusters(cluster_dict_black, cluster_dict_white, initial_threshold=5):
+    """
+    Generates error bounds for black and white clusters based on their counts and an initial threshold.
 
-    # DBSCAN Black
-    if sorted_array_1.size > 0:
-        dbscan_1 = DBSCAN(eps=5, min_samples=10)  # Adjust eps and min_samples as needed
-        clusters_1 = dbscan_1.fit_predict(sorted_array_1)
+    Parameters:
+    - cluster_dict_black (dict): The black clusters dictionary.
+    - cluster_dict_white (dict): The white clusters dictionary.
+    - initial_threshold (int): The initial threshold for error calculation.
 
-        # Organize points into a dictionary based on their cluster
-        cluster_dict_1 = {}
-        for point, cluster_idx in zip(sorted_array_1, clusters_1):
-            if cluster_idx != -1:  # Filter out noise points if needed
-                cluster_dict_1.setdefault(cluster_idx, []).append(point.tolist())
-    else:
-        print("No blue points found in the image.")
-        cluster_dict_1 = {}
+    Returns:
+    - tuple: Contains two tuples for black and white error bounds, each with a list for lower and upper bounds.
+    """
+    error_lower_bound_black = [initial_threshold for _ in range(len(cluster_dict_black))]
+    error_upper_bound_black = [initial_threshold + 15 for _ in range(len(cluster_dict_black))]
+    
+    error_lower_bound_white = [initial_threshold for _ in range(len(cluster_dict_white))]
+    error_upper_bound_white = [initial_threshold + 12 for _ in range(len(cluster_dict_white))]
 
-    for cluster_idx in cluster_dict_1:
-        cluster_dict_1[cluster_idx] = np.array(cluster_dict_1[cluster_idx])
-
-    # DBSCAN White
-    if sorted_array_2.size > 0:
-        dbscan_2 = DBSCAN(eps=5, min_samples=10)  # Adjust eps and min_samples as needed
-        clusters_2 = dbscan_2.fit_predict(sorted_array_2)
-
-        # Organize points into a dictionary based on their cluster
-        cluster_dict_2 = {}
-        for point, cluster_idx in zip(sorted_array_2, clusters_2):
-            if cluster_idx != -1:  # Filter out noise points if needed
-                cluster_dict_2.setdefault(cluster_idx, []).append(point.tolist())
-    else:
-        print("No blue points found in the image.")
-        cluster_dict_2 = {}
-
-    cluster_dict_2_proc = {}
-    index = 0
-    for key in cluster_dict_2:
-        if (len(cluster_dict_2[key]) > 75):
-            cluster_dict_2_proc[index] = cluster_dict_2[key]
-            index += 1
-
-    for cluster_idx in cluster_dict_2:
-        cluster_dict_2[cluster_idx] = np.array(cluster_dict_2[cluster_idx])
-
-    print(len(cluster_dict_2_proc))
-
-    return roi, cluster_dict_1, cluster_dict_2_proc
+    black_error_bounds = (error_lower_bound_black, error_upper_bound_black)
+    white_error_bounds = (error_lower_bound_white, error_upper_bound_white)
+    
+    return black_error_bounds, white_error_bounds
 
 
-def inference_frame(inf_frame, mask_bound, hex_color_1, hex_color_2, cluster_dict_1, cluster_dict_2, roi, threshold=40, error_lower_bound=[], error_upper_bound=[]):
-    x1, y1, x2, y2 = mask_bound
-    inf_roi = inf_frame[y1:y2, x1:x2]
+def calibrate_error_bounds(error_keys, error_bounds):
+    """
+    Adjusts error bounds based on the presence of keys in the error_keys list. If error_keys is not empty,
+    increments the bounds for those keys. Otherwise, indicates that calibration is done.
 
-    # black
-    bgr_color_1 = hex_to_bgr(hex_color_1)  # "#C8CE7B"
-    lower_bound_1 = np.array(
-        [max(0, bgr_color_1[0] - threshold), max(0, bgr_color_1[1] - threshold), max(0, bgr_color_1[2] - threshold)])
-    upper_bound_1 = np.array([min(255, bgr_color_1[0] + threshold), min(255, bgr_color_1[1] + threshold),
-                              min(255, bgr_color_1[2] + threshold)])
-    mask_1 = cv2.inRange(inf_roi, lower_bound_1, upper_bound_1)
+    Parameters:
+    - error_keys (list): A list of indices corresponding to clusters that met error criteria.
+    - error_bounds (tuple): A tuple containing two lists (error_lower_bound, error_upper_bound) representing the current error bounds for filtering.
 
-    y_coord_1, x_coord_1 = np.where(mask_1 != 0)
-    coord_array_1 = np.stack((y_coord_1, x_coord_1), axis=-1)
-    inf_roi[mask_1 != 0] = [255, 0, 0]
-
-    # white
-    bgr_color_2 = hex_to_bgr(hex_color_2)  # "#C8CE7B"
-    lower_bound_2 = np.array(
-        [max(0, bgr_color_2[0] - threshold), max(0, bgr_color_2[1] - threshold), max(0, bgr_color_2[2] - threshold)])
-    upper_bound_2 = np.array([min(255, bgr_color_2[0] + threshold), min(255, bgr_color_2[1] + threshold),
-                              min(255, bgr_color_2[2] + threshold)])
-    mask_2 = cv2.inRange(inf_roi, lower_bound_2, upper_bound_2)
-
-    y_coord_2, x_coord_2 = np.where(mask_2 != 0)
-    coord_array_2 = np.stack((y_coord_2, x_coord_2), axis=-1)
-    inf_roi[mask_2 != 0] = [255, 0, 255]
-
-    all_errors_black = []
-    error_keys_black = []
-    for cluster in cluster_dict_1.values():
-        error_count_1 = sum(1 for rows_ref, columns_ref in cluster
-                            if all(roi[rows_ref][columns_ref]) != all(inf_roi[rows_ref][columns_ref]))
-        all_errors_black.append(error_count_1)
-
-    for index, values in enumerate(all_errors_black):
-        if (values > 20):
-            error_keys_black.append(index)
-
-    # Black
-    # all_errors_black = []
-    # error_keys_black= []
-    # error_percentages_black = []  # List to store error percentages
-
-    # for cluster in cluster_dict_1.values():
-    #     error_count_1 = 0
-    #     total_comparisons = 0  # Initialize total comparisons for the current cluster
-    #     for rows_ref, columns_ref in cluster:
-    #         total_comparisons += 1  # Increment total comparisons
-    #         if all(roi[rows_ref][columns_ref]) != all(inf_roi[rows_ref][columns_ref]):
-    #             error_count_1 += 1
-    #     all_errors_black.append(error_count_1)
-    #     if total_comparisons > 0:  # Avoid division by zero
-    #         error_percentage = (error_count_1 / total_comparisons) * 100
-    #     else:
-    #         error_percentage = 0  # If no comparisons, set error percentage to 0
-    #     error_percentages_black.append(error_percentage)  # Store the error percentage
-
-    # error_lower_bound_1 = [7, 7, 8, 7, 8, 8, 8, 8, 8]
-    # error_upper_bound_1 = [15, 15, 15, 15, 15, 15, 15, 15, 15]
-    # for index, values in enumerate(error_percentages_black):
-    #     if values > error_lower_bound_1[index] and values < error_upper_bound_1[index]:
-    #         error_keys_black.append(index)
-
-    # White
-    all_errors_white = []
-    error_keys_white = []
-    error_percentages_white = []  # List to store error percentages
-
-    for cluster in cluster_dict_2.values():
-        error_count_2 = 0
-        total_comparisons = 0  # Initialize total comparisons for the current cluster
-        for rows_ref, columns_ref in cluster:
-            total_comparisons += 1  # Increment total comparisons
-            if all(roi[rows_ref][columns_ref]) != all(inf_roi[rows_ref][columns_ref]):
-                error_count_2 += 1
-        all_errors_white.append(error_count_2)
-        if total_comparisons > 0:  # Avoid division by zero
-            error_percentage = (error_count_2 / total_comparisons) * 100
-        else:
-            error_percentage = 0  # If no comparisons, set error percentage to 0
-        error_percentages_white.append(error_percentage)  # Store the error percentage
-
-    # error_lower_bound = [6, 7, 8.5, 9, 7, 8, 11, 12, 7]
-    # error_upper_bound = [15, 20, 20, 15, 20, 15, 20, 20, 15]
-    # error_lower_bound = [6, 7, 5, 5, 5, 8, 7, 7, 7]
-    # error_upper_bound = [15, 20, 20, 15, 20, 15, 20, 15, 15]
-    for index, values in enumerate(error_percentages_white):
-        if values > error_lower_bound[index] and values < error_upper_bound[index]:
-            error_keys_white.append(index)
-
-    # Now, error_percentages_white contains the error percentage for each cluster
-
-    # key = 0
-    # # print(all_errors_white)
-    # if(key in error_keys_white):
-    #     print(error_percentages_white[key])
-
-    # if(key in error_keys_black):
-    #     print(error_percentages_black[key])
-
-    return inf_roi, error_keys_black, error_keys_white
-
-
-def inference_frame_calibration(inf_frame, mask_bound, hex_color_1, hex_color_2, cluster_dict_1, cluster_dict_2, roi,
-                                threshold=40, error_lower_bound=[], error_upper_bound=[], initial_state=True):
-    x1, y1, x2, y2 = mask_bound
-    inf_roi = inf_frame[y1:y2, x1:x2]
-
-    # black
-    bgr_color_1 = hex_to_bgr(hex_color_1)  # "#C8CE7B"
-    lower_bound_1 = np.array(
-        [max(0, bgr_color_1[0] - threshold), max(0, bgr_color_1[1] - threshold), max(0, bgr_color_1[2] - threshold)])
-    upper_bound_1 = np.array([min(255, bgr_color_1[0] + threshold), min(255, bgr_color_1[1] + threshold),
-                              min(255, bgr_color_1[2] + threshold)])
-    mask_1 = cv2.inRange(inf_roi, lower_bound_1, upper_bound_1)
-
-    y_coord_1, x_coord_1 = np.where(mask_1 != 0)
-    coord_array_1 = np.stack((y_coord_1, x_coord_1), axis=-1)
-    inf_roi[mask_1 != 0] = [255, 0, 0]
-
-    # white
-    bgr_color_2 = hex_to_bgr(hex_color_2)  # "#C8CE7B"
-    lower_bound_2 = np.array(
-        [max(0, bgr_color_2[0] - threshold), max(0, bgr_color_2[1] - threshold), max(0, bgr_color_2[2] - threshold)])
-    upper_bound_2 = np.array([min(255, bgr_color_2[0] + threshold), min(255, bgr_color_2[1] + threshold),
-                              min(255, bgr_color_2[2] + threshold)])
-    mask_2 = cv2.inRange(inf_roi, lower_bound_2, upper_bound_2)
-
-    y_coord_2, x_coord_2 = np.where(mask_2 != 0)
-    coord_array_2 = np.stack((y_coord_2, x_coord_2), axis=-1)
-    inf_roi[mask_2 != 0] = [255, 0, 255]
-
-    all_errors_black = []
-    error_keys_black = []
-    for cluster in cluster_dict_1.values():
-        error_count_1 = sum(1 for rows_ref, columns_ref in cluster
-                            if all(roi[rows_ref][columns_ref]) != all(inf_roi[rows_ref][columns_ref]))
-        all_errors_black.append(error_count_1)
-
-    for index, values in enumerate(all_errors_black):
-        if (values > 20):
-            error_keys_black.append(index)
-
-    # White
-    all_errors_white = []
-    error_keys_white = []
-    error_percentages_white = []  # List to store error percentages
-
-    if (initial_state):
-        print(initial_state)
-        initial_threshold = 6
-        error_lower_bound = [initial_threshold for _ in range(len(cluster_dict_2))]
-        error_upper_bound = [initial_threshold + 12 for _ in range(len(cluster_dict_2))]
-
-    for cluster in cluster_dict_2.values():
-        error_count_2 = 0
-        total_comparisons = 0  # Initialize total comparisons for the current cluster
-        for rows_ref, columns_ref in cluster:
-            total_comparisons += 1  # Increment total comparisons
-            if all(roi[rows_ref][columns_ref]) != all(inf_roi[rows_ref][columns_ref]):
-                error_count_2 += 1
-        all_errors_white.append(error_count_2)
-        if total_comparisons > 0:  # Avoid division by zero
-            error_percentage = (error_count_2 / total_comparisons) * 100
-        else:
-            error_percentage = 0  # If no comparisons, set error percentage to 0
-        error_percentages_white.append(error_percentage)  # Store the error percentage
-
-    # error_lower_bound = [6, 7, 7, 6, 5, 8, 7, 7, 7]
-    # error_upper_bound = [15, 20, 20, 15, 20, 15, 20, 15, 15]
-    for index, values in enumerate(error_percentages_white):
-        if values > error_lower_bound[index] and values < error_upper_bound[index]:
-            error_keys_white.append(index)
-    if (error_keys_white):
-        for _, value in enumerate(error_keys_white):
-            print("its here")
+    Returns:
+    - tuple: The updated error_bounds tuple after adjustment.
+    """
+    error_lower_bound, error_upper_bound = error_bounds
+    if error_keys:
+        for _, value in enumerate(error_keys):
             error_lower_bound[value] += 1
             error_upper_bound[value] += 1
-            # print(error_lower_bound, error_upper_bound)
+        updated_bounds = (error_lower_bound, error_upper_bound)
     else:
         print("calibration_done:", error_lower_bound, error_upper_bound)
+        # each value in error_lower_bound + something to notget other keys  
+        updated_bounds = error_bounds  # No change if calibration done
 
-    return inf_roi, error_keys_black, error_keys_white, error_lower_bound, error_upper_bound
+    return updated_bounds
 
-white_keys = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4']
-black_keys = ['C♯3', 'D♯3', 'F♯3', 'G♯3', 'A♯3']
+def filter_keys(cluster_dict, roi, inf_roi, error_bounds):
+    """
+    Calculates error percentages for clusters and filters keys based on error bounds.
+
+    Parameters:
+    - cluster_dict (dict): Clusters to analyze, where each key is a cluster index, and the value is a list of points.
+    - roi (numpy.ndarray): The reference region of interest from the original frame.
+    - inf_roi (numpy.ndarray): The inference region of interest from the compared frame.
+    - error_bounds (tuple): A tuple containing two lists, the first for lower bounds and the 
+      second for upper bounds of error percentages for filtering. Each list's length should match the number of clusters.
+
+    Returns:
+    - tuple: (error_keys, error_percentages)
+        - error_keys (list): The keys of clusters that fall within the specified error bounds.
+        - error_percentages (list): The error percentages of all clusters.
+    """
+    error_keys = []
+    error_percentages = []
+    error_lower_bound, error_upper_bound = error_bounds
+
+    for index, (key, cluster) in enumerate(cluster_dict.items()):
+        error_count = sum(1 for row_ref, col_ref in cluster if not np.array_equal(roi[row_ref, col_ref], inf_roi[row_ref, col_ref]))
+        total_comparisons = len(cluster)
+
+        error_percentage = (error_count / total_comparisons) * 100 if total_comparisons > 0 else 0
+        error_percentages.append(error_percentage)
+
+        if total_comparisons > 0 and error_lower_bound[index] < error_percentage < error_upper_bound[index]:
+            error_keys.append(key)
+    return error_keys
+
+def reference_frame(frame, mask_bound, hsv_color_1, hsv_color_2, threshold=40):
+    x1, y1, x2, y2 = mask_bound
+    roi = frame[y1:y2, x1:x2]
+    roi_hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+
+    # black
+    mask_1 = apply_threshold_hsv(roi_hsv, hsv_color_1)
+    roi[mask_1 != 0] = [255, 0, 0]
+    cluster_dict_1 = find_clusters(mask_1)
+
+    # white
+    mask_2 = apply_threshold_hsv(roi_hsv, hsv_color_2)
+    roi[mask_2 != 0] = [255, 0, 255]
+    cluster_dict_2 = find_clusters(mask_2)
+
+    cluster_dict_1 = filter_noise_clusters(cluster_dict_1, 100)
+    cluster_dict_2 = filter_noise_clusters(cluster_dict_2, 100)
+
+    ###### Check if this improves the latency otherwise delete it #########
+    # for cluster_idx in cluster_dict_1:
+    #     cluster_dict_1[cluster_idx] = np.array(cluster_dict_1[cluster_idx])
+
+    # for cluster_idx in cluster_dict_2:
+    #     cluster_dict_2[cluster_idx] = np.array(cluster_dict_2[cluster_idx])
+    
+    #######################################################################
+
+    return roi, cluster_dict_1, cluster_dict_2
+    
+
+def inference_frame(inf_frame, mask_bound, hsv_color_1, hsv_color_2, cluster_dict_1, cluster_dict_2, roi, threshold=40, error_bound_1=(), error_bound_2=()):
+    x1, y1, x2, y2 = mask_bound
+    inf_roi = inf_frame[y1:y2, x1:x2]
+    inf_roi_hsv = cv2.cvtColor(inf_roi, cv2.COLOR_BGR2HSV)
+
+    # black
+    mask_1 = apply_threshold_hsv(inf_roi_hsv, hsv_color_1)
+    inf_roi[mask_1 != 0] = [255, 0, 0]
+
+    # white
+    mask_2 = apply_threshold_hsv(inf_roi_hsv, hsv_color_2)
+    inf_roi[mask_2 != 0] = [255, 0, 255]
+
+    black_error_keys = filter_keys(cluster_dict_1, roi, inf_roi, error_bound_1)
+    white_error_keys = filter_keys(cluster_dict_2, roi, inf_roi, error_bound_2)
+
+    return inf_roi, black_error_keys, white_error_keys
+    
+
+white_keys = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+black_keys = ['C#', 'D#', 'F#', 'G#', 'A#']
 
 def encode_to_scale(values, scale):
     encoded_notes = []
@@ -293,104 +203,67 @@ def encode_to_scale(values, scale):
         encoded_notes.append(note)
     return encoded_notes
 
-BLACK_TAG = "#C2C36F"
-WHITE_TAG = "#DC6D99"
+
+######################### MAIN LOOP #########################
+
 cap = cv2.VideoCapture("/dev/video0")
-ref_img = False
-count = 0
-calibration_frames = 150
+ref_img = True
 prev_notes = []
-last_send_time = datetime.now() - timedelta(seconds=0.5)
 print("starting loop", cap)
+HSV_color_1 = (174, 131, 201)
+HSV_color_2 = (29, 58, 201)
+
+count = 0
+CALIBRATION_FRAMES = 100
+
 while cap.isOpened():
-    if count < calibration_frames:
-        count += 1
-    # print("inside the loop")
+    
     success, frame_img = cap.read()
-    # frame = cv2.rotate(frame, cv2.ROTATE_180)
 
     if not success:
         print("Ignoring empty camera frame.")
         break
+    
+    if count < CALIBRATION_FRAMES:
+        count += 1
+        continue
 
-    if not ref_img:
-        if count == 100:
-            mask_bound = (0, 265, 640, 452)
-            roi, cluster_dict_1, cluster_dict_2 = reference_frame(frame_img, mask_bound, BLACK_TAG, WHITE_TAG)
-            # roi, cluster_dict_1 = reference_frame(frame_img, mask_bound, "#C8CE7B", "#699faf")
-            ref_img = True
-            frame_img = roi
-            count += 1
-            first_state = True
+    if ref_img:    
+        # cv2.imshow('Pressed Key Frame', frame_img)
+        
+        mask_bound = (0, 265, 640, 452)
+        roi, cluster_dict_1, cluster_dict_2 = reference_frame(frame_img, mask_bound, HSV_color_1 , HSV_color_2)
+        ref_img = False
+        black_error_bounds, white_error_bounds = generate_error_bounds_for_clusters(cluster_dict_1, cluster_dict_2, initial_threshold=8)
 
-    elif (ref_img):
-        if count < calibration_frames:
-            print("calibrating...")
-            if(first_state):
-                frame_roi, error_keys_black, error_keys_white, error_lower_bound_1, error_upper_bound_1 = inference_frame_calibration(frame_img, mask_bound, BLACK_TAG, WHITE_TAG, cluster_dict_1, cluster_dict_2,
-                                        roi, threshold=40)
-                first_state = False
+    else:
+        frame_roi, black_error_keys, white_error_keys = inference_frame(frame_img, mask_bound, HSV_color_1, HSV_color_2,
+                cluster_dict_1, cluster_dict_2, roi, threshold=40, 
+                error_bound_1=black_error_bounds, error_bound_2=white_error_bounds)
+        
+        encoded_notes_black = encode_to_scale(black_error_keys, black_keys)
+        encoded_notes_white = encode_to_scale(white_error_keys, white_keys)
+        all_notes = encoded_notes_white + encoded_notes_black
+        
+        if all_notes:
+            print(all_notes)
+            now = datetime.now()
+            time_since_last_send = (now - last_send_time).total_seconds()
 
-            else:
-                frame_roi, error_keys_black, error_keys_white, error_lower_bound_1, error_upper_bound_1 = inference_frame_calibration(
-                    frame_img, mask_bound, BLACK_TAG, WHITE_TAG, cluster_dict_1, cluster_dict_2,
-                    roi, threshold=40, error_lower_bound=error_lower_bound_1, error_upper_bound=error_upper_bound_1,
-                    initial_state=False)
-                # for keys in error_keys_black:
-                #     for i in cluster_dict_1[keys]:
-                #         rows, columns = i
-                #
-                #         frame_roi[rows][columns][0] = 0
-                #         frame_roi[rows][columns][1] = 0
-                #         frame_roi[rows][columns][2] = 255
-                #
-                # for keys in error_keys_white:
-                #     for i in cluster_dict_2[keys]:
-                #         rows, columns = i
-                #
-                #         frame_roi[rows][columns][0] = 0
-                #         frame_roi[rows][columns][1] = 255
-                #         frame_roi[rows][columns][2] = 255
-        else:
-            frame_roi, error_keys_black, error_keys_white = inference_frame(frame_img, mask_bound, BLACK_TAG, WHITE_TAG,
-                                                                        cluster_dict_1, cluster_dict_2, roi,
-                                                                        threshold=40, error_lower_bound=error_lower_bound_1, error_upper_bound=error_upper_bound_1)
-            encoded_notes_white = encode_to_scale(error_keys_white, white_keys)
-            encoded_notes_black = encode_to_scale(error_keys_black, black_keys)
-            all_notes = encoded_notes_white + encoded_notes_black
-            if all_notes:
-                print(all_notes)
-                now = datetime.now()
-                time_since_last_send = (now - last_send_time).total_seconds()
+            # Check if the list is different or if more than 0.5 seconds have passed since the last identical list was sent
+            if all_notes != prev_notes or time_since_last_send > 0.5:
+                try:
+                    socket.send_string(' '.join(all_notes), zmq.NOBLOCK)
+                    print(f"Sent: {' '.join(all_notes)}")
+                    prev_notes = all_notes
+                    last_send_time = now  # Update the time of the last send
+                except zmq.Again:
+                    print("Sending failed, socket not ready")
 
-                # Check if the list is different or if more than 0.5 seconds have passed since the last identical list was sent
-                if all_notes != prev_notes or time_since_last_send > 0.5:
-                    try:
-                        socket.send_string(' '.join(all_notes), zmq.NOBLOCK)
-                        print(f"Sent: {' '.join(all_notes)}")
-                        prev_notes = all_notes
-                        last_send_time = now  # Update the time of the last send
-                    except zmq.Again:
-                        print("Sending failed, socket not ready")
-            # for keys in error_keys_black:
-            #     for i in cluster_dict_1[keys]:
-            #         rows, columns = i
-            #
-            #         frame_roi[rows][columns][0] = 0
-            #         frame_roi[rows][columns][1] = 0
-            #         frame_roi[rows][columns][2] = 255
-            #
-            # for keys in error_keys_white:
-            #     for i in cluster_dict_2[keys]:
-            #         rows, columns = i
-            #
-            #         frame_roi[rows][columns][0] = 0
-            #         frame_roi[rows][columns][1] = 255
-            #         frame_roi[rows][columns][2] = 255
-            #
-        cv2.waitKey(1)
-        # cv2.imshow('Pressed Key Frame', frame_roi)
+    cv2.waitKey(1)
+    # if cv2.getWindowProperty('Pressed Key Frame', cv2.WND_PROP_VISIBLE) < 1:
+    #     break
 
 
 cap.release()
-cv2.destroyAllWindows()
+# cv2.destroyAllWindows()
