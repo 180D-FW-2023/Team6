@@ -196,14 +196,12 @@ def encode_to_scale(values, scale):
         encoded_notes.append(note)
     return encoded_notes
 
-
-cap =  cv2.VideoCapture(0)
+cap =  cv2.VideoCapture(0, cv2.CAP_DSHOW)
 ref_img = False
-
-black_tag = (33, 76, 207)
-white_tag = (161, 116, 228)
-mask_bound = (0, 265, 640, 452)
-threshold = 40
+# white = (196, 140, 233)
+# black = (161, 222, 216)
+HSV_color_1 = (174, 131, 201)
+HSV_color_2 = (29, 58, 201)
 
 while cap.isOpened():
     
@@ -217,53 +215,42 @@ while cap.isOpened():
         cv2.imshow('Pressed Key Frame', frame_img)
         
         if cv2.waitKey(1) & 0xFF == ord('s'):
-            height, width, _ = frame_img.shape
-            mask_bound = (0, height//3, width, height//3*2)
-            print("Reference Frame Captured")
-            roi, cluster_dict_1, cluster_dict_2 = reference_frame(frame_img, mask_bound, black_tag, white_tag)
+            mask_bound = (0, 265, 640, 452)
+            roi, cluster_dict_1, cluster_dict_2 = reference_frame(frame_img, mask_bound, HSV_color_1 , HSV_color_2)
             ref_img = True
-            frame_img = roi
-            frame_img = cv2.cvtColor(frame_img, cv2.COLOR_HSV2BGR)
-            cv2.imshow('Pressed Key Frame', frame_img)
-            if len(cluster_dict_1) > 20 or len(cluster_dict_2) > 20:
-                print("Too many clusters: ", len(cluster_dict_1), len(cluster_dict_2))
-                ref_img = False
-                break
+            black_error_bounds, white_error_bounds = generate_error_bounds_for_clusters(cluster_dict_1, cluster_dict_2, initial_threshold=8)
 
     elif(ref_img):
+        frame_roi, black_error_keys, white_error_keys = inference_frame(frame_img, mask_bound, HSV_color_1, HSV_color_2,
+                cluster_dict_1, cluster_dict_2, roi, threshold=40, 
+                error_bound_1=black_error_bounds, error_bound_2=white_error_bounds)
         
-        inf_frame_roi, error_keys_black, error_keys_white = \
-            inference_frame(frame_img, mask_bound, black_tag, white_tag, cluster_dict_1, cluster_dict_2, roi, threshold)
-            
-        cv2.imshow('blah blah', inf_frame_roi)
-        print("White Keys: ", error_keys_white)
-        print("Black Keys: ", error_keys_black)
-        print("=-------------------=")
-            
-        encoded_notes_white = encode_to_scale(error_keys_white, white_keys)
-        encoded_notes_black = encode_to_scale(error_keys_black, black_keys)
+        encoded_notes_black = encode_to_scale(black_error_keys, black_keys)
+        encoded_notes_white = encode_to_scale(white_error_keys, white_keys)
         all_notes = encoded_notes_white + encoded_notes_black
+        
         if(all_notes):
             print(all_notes)
-        
-        
-        output_img = cv2.cvtColor(inf_frame_roi, cv2.COLOR_HSV2BGR)
-        
-        for keys in error_keys_black:
+
+        for keys in black_error_keys:
             for i in cluster_dict_1[keys]:
                 rows, columns = i
-                output_img[rows][columns] = [255, 0, 255]
-
-        for keys in error_keys_white:
+                
+                frame_roi[rows][columns][0] = 0
+                frame_roi[rows][columns][1] = 255
+                frame_roi[rows][columns][2] = 0
+                
+        for keys in white_error_keys:
             for i in cluster_dict_2[keys]:
                 rows, columns = i
-                output_img[rows][columns] = [255, 0, 255]
+                
+                frame_roi[rows][columns][0] = 0
+                frame_roi[rows][columns][1] = 125
+                frame_roi[rows][columns][2] = 125
         
-        cv2.imshow('Pressed Key Frame', output_img)
+        cv2.imshow('Pressed Key Frame', frame_roi)
 
     cv2.waitKey(1)
-    if cv2.waitKey(1) & 0xFF == ord('a'):
-        break
     if cv2.getWindowProperty('Pressed Key Frame', cv2.WND_PROP_VISIBLE) < 1:
         break
     
