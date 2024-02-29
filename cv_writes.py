@@ -191,8 +191,8 @@ def inference_frame(inf_frame, mask_bound, hsv_color_1, hsv_color_2, cluster_dic
     return inf_roi, black_error_keys, white_error_keys
     
 
-white_keys = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
-black_keys = ['C#', 'D#', 'F#', 'G#', 'A#']
+white_keys = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C3']
+black_keys = ['C#3', 'D#3', 'F#3', 'G#3', 'A#3']
 
 def encode_to_scale(values, scale):
     encoded_notes = []
