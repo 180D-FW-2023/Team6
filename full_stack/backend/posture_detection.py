@@ -148,7 +148,7 @@ while cap.isOpened():
 
         """Put text, Posture and angle inclination."""
         # Text string for display.
-        angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination)) + '  Armo: ' + str(int(arm_inclination))
+        angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination)) + '  Arm: ' + str(int(arm_inclination))
 
         # Determine whether good posture or bad posture.
         if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 110 and arm_inclination < 150:
@@ -180,7 +180,16 @@ while cap.isOpened():
                 # cv2.imwrite(filename, frame)
                 print(f"Bad posture detected for 2 seconds. Frame saved as {filename}")
                 _, buffer = cv2.imencode('.jpg', frame)
-                response = requests.post('http://localhost:5000/upload_frame', files={'image': buffer.tobytes()})
+                # Data to be sent in the POST request
+                text_to_send = ""
+                if neck_inclination >= 40:
+                    text_to_send = text_to_send + "Fix your neck position! "
+                if torso_inclination >= 10:
+                    text_to_send = text_to_send + "Fix your torso position! "
+                if arm_inclination <= 110 or arm_inclination >= 150:
+                    text_to_send = text_to_send + "Fix your arm position! "
+                print(text_to_send)
+                response = requests.post('http://localhost:5000/upload_frame', files={'image': buffer.tobytes(), 'text': text_to_send})
                 print(response.text)  # Assuming the response is text for simplicity
                 
                 # Reset variables
