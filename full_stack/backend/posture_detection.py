@@ -64,7 +64,7 @@ mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 # cap = cv2.VideoCapture('C:\\Users\\17147\\Desktop\\College\\180DA\\sample1.mp4')
 # cap =  cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
@@ -148,7 +148,7 @@ while cap.isOpened():
 
         """Put text, Posture and angle inclination."""
         # Text string for display.
-        angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination))
+        angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination)) + '  Armo: ' + str(int(arm_inclination))
 
         # Determine whether good posture or bad posture.
         if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 110 and arm_inclination < 150:
@@ -238,7 +238,7 @@ while cap.isOpened():
     
         """Put text, Posture and angle inclination."""
         # Text string for display.
-        angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination))
+        angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination)) + '  Armo: ' + str(int(arm_inclination))
 
         # Determine whether good posture or bad posture.
         if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 110 and arm_inclination < 150:
@@ -258,7 +258,7 @@ while cap.isOpened():
             cv2.line(image, (r_elbw_x, r_elbw_y), (r_wrst_x, r_wrst_y), green, 4)
     
         else:
-            print("Bad Posture")
+            #print("Bad Posture")
             if not bad_posture_detected:
                 bad_posture_detected = True
                 bad_posture_start_time = time.time()
@@ -272,11 +272,12 @@ while cap.isOpened():
                 # Data to be sent in the POST request
                 text_to_send = ""
                 if neck_inclination >= 40:
-                    text_to_send = "Fix your neck position!"
+                    text_to_send = text_to_send + "Fix your neck position! "
                 if torso_inclination >= 10:
-                    text_to_send = "Fix your torso position!"
+                    text_to_send = text_to_send + "Fix your torso position! "
                 if arm_inclination <= 110 or arm_inclination >= 150:
-                    text_to_send = "Fix your arm position!"
+                    text_to_send = text_to_send + "Fix your arm position! "
+                print(text_to_send)
                 response = requests.post('http://localhost:5000/upload_frame', files={'image': buffer.tobytes(), 'text': text_to_send})
                 print(response.text)  # Assuming the response is text for simplicity
                 
