@@ -12,7 +12,7 @@ def record_audio(filename, duration, sample_rate):
 if __name__ == "__main__":
     # Set the filename and duration for recording
     output_filename = "recorded_audio.wav"
-    recording_duration = 0.1  # in seconds
+    recording_duration = 1  # in seconds
 
     # Record audio and save to WAV file
     record_audio(output_filename, recording_duration, 44100)
