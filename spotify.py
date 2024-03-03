@@ -23,8 +23,6 @@ import aubio
 import librosa
 from collections import OrderedDict
 import math
-import noisereduce as nr
-
 TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
 # initialise pyaudio
 p = pyaudio.PyAudio()
@@ -73,8 +71,7 @@ while True:
     try:
         audiobuffer = stream.read(buffer_size)
         signal = np.frombuffer(audiobuffer, dtype=np.float32)
-        reduced_noise = nr.reduce_noise(y=signal, sr=samplerate)
-        write("recorded_audio.wav", samplerate, reduced_noise)
+        write("recorded_audio.wav", samplerate, signal)
 
         model_output, midi_data, note_events = predict(
         "recorded_audio.wav",
