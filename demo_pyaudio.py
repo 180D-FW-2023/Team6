@@ -280,10 +280,10 @@ while True:
 
 
         #librosa pitch
-        max_noise = np.max(np.abs(librosa.stft(signal, n_fft=FFT_SIZE,  window = 'hamming')))
+        max_noise = np.max(np.abs(librosa.stft(signal, n_fft=FFT_SIZE,  window = 'hann')))
         #print("max_noise:" +  str(max_noise))
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, n_fft=FFT_SIZE, window = 'hamming')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -10).all(1)
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, n_fft=FFT_SIZE, window = 'hann')), ref=np.max)
+        mask = (oldD[:, -10:-1] > -21).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
         newD[mask] = oldD[mask]
@@ -293,6 +293,7 @@ while True:
         #print(pitches[np.where(magnitudes>0)])
         #print(magnitudes[np.where(magnitudes>0)])
         pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
+        print(pitches_final)
         if len(pitches_final) > 0:
             notes_librosa = librosa.hz_to_note(pitches_final)
             notes_librosa = list(OrderedDict.fromkeys(notes_librosa))

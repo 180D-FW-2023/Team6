@@ -21,6 +21,8 @@ import tensorflow as tf
 from scipy.io.wavfile import write
 import matplotlib.pyplot as plt
 import os
+from PIL import Image
+import keras.utils as image
 
 TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
 # initialise pyaudio
@@ -62,10 +64,10 @@ onsets = []
 max_buffer = [0]
 buf_const = 2
 fft_len = FFT_SIZE
-output_folder = '/home/pi/buffer'
+output_folder = 'C:\Team6'
 
 # Load TFLite model and allocate tensors.
-interpreter = tf.lite.Interpreter(model_path="your_model.tflite")
+interpreter = tf.lite.Interpreter(model_path="model.tflite")
 interpreter.allocate_tensors()
 
 # Get input and output details
@@ -87,7 +89,12 @@ while True:
         plt.axis('off')
         plt.savefig(os.path.join(output_folder, f"mel_spectrogram_chunk.png"), bbox_inches='tight', pad_inches=0)
         plt.close()
-        interpreter.set_tensor(input_details[0]['index'], os.path.join(output_folder, f"mel_spectrogram_chunk.png"))
+        #input_data = Image.open(os.path.join(output_folder, f"mel_spectrogram_chunk.png"))
+        img = image.load_img(os.path.join(output_folder, f"mel_spectrogram_chunk.png"),target_size=(465,308,3))
+        img = image.img_to_array(img)
+        img = img/255
+        img = np.expand_dims(img, axis=0)
+        interpreter.set_tensor(input_details[0]['index'], img)
         
         # Perform inference
         interpreter.invoke()
@@ -96,7 +103,24 @@ while True:
         output_data = interpreter.get_tensor(output_details[0]['index'])
         
         # Process the output (modify according to your model's output)
-        print("Output:", output_data)           
+        print("Output:", output_data)
+        # Map indices to class labels
+        class_labels = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 
+                        'C4', 'C#4', 'D4', 'D#4', 'E4', 'F4', 'F#4', 'G4', 'G#4', 'A4', 
+                        'A#4', 'B4', 'C5']
+
+        # Define a threshold
+        threshold = 0.1
+
+        # Get classes whose values are above the threshold
+        classes_above_threshold = []
+        for idx, value in enumerate(output_data[0]):
+            if value > threshold:
+                classes_above_threshold.append(class_labels[idx])
+
+        # Print the classes
+        print("Classes whose values are above", threshold)
+        print(classes_above_threshold)           
                 
 
 
