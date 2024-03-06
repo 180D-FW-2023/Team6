@@ -67,7 +67,7 @@ fft_len = FFT_SIZE
 output_folder = 'C:\Team6'
 
 # Load TFLite model and allocate tensors.
-interpreter = tf.lite.Interpreter(model_path="model.tflite")
+interpreter = tf.lite.Interpreter(model_path="/home/pi/model.tflite")
 interpreter.allocate_tensors()
 
 # Get input and output details
