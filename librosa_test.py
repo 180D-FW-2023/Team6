@@ -11,7 +11,7 @@ import numpy as np
 
 fs = 44100  # Sample rate
 seconds = 0.05 # Duration of recording
-record = 1 #whether or not to record
+record = 0 #whether or not to record
 
 
 if record == 1:
@@ -27,9 +27,9 @@ y = np.asarray(data).astype(float)
 
 #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
 #times = librosa.times_like(f0)
-max_noise = np.max(np.abs(librosa.stft(y, window = 'hann')))
+max_noise = np.max(np.abs(librosa.stft(y, window = 'hamming')))
 print(max_noise)
-oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y, window = 'hann')), ref=np.max)
+oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y, n_fft=6144, window = 'hamming')), ref=np.max)
 mask = (oldD[:, -10:-1] > -21).all(1)
 blank = -80
 newD = np.full_like(oldD, blank)
@@ -45,7 +45,7 @@ if len(pitches_final) > 0:
     notes = list(OrderedDict.fromkeys(notes))
 else:
     notes = ""
-print(pitches_final)
+print("pitches" + str(pitches_final))
 print(notes)
 l = " ".join(notes)
 print(l)
@@ -56,9 +56,11 @@ if (cur_onsets.size > 0):
 else:
     detected = False
 print(detected)
+
+
 fig, ax = plt.subplots()
 
-img = librosa.display.specshow(np.abs(librosa.stft(y)),y_axis='linear', x_axis='time', ax=ax)
+img = librosa.display.specshow(librosa.amplitude_to_db(np.abs(librosa.stft(y, window = 'hamming')),ref=np.max),y_axis='log', x_axis='time', ax=ax)
 
 ax.set_title('Power spectrogram')
 

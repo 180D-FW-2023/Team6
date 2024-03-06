@@ -33,10 +33,10 @@ def split_audio_and_save_mel_spectrograms(audio_file, output_folder, chunk_size_
         #plt.colorbar(format='%+2.0f dB')
         #plt.title('Mel Spectrogram')
         plt.axis('off')
-        plt.savefig(os.path.join(output_folder, f"mel_spectrogram_d_chunk_{start}.png"), bbox_inches='tight', pad_inches=0)
+        plt.savefig(os.path.join(output_folder, f"mel_spectrogram_bmin_chunk_{start}.png"), bbox_inches='tight', pad_inches=0)
         plt.close()
 
 # Example usage:
-audio_file = "recorded_audio.wav"  # Update with your audio file path
-output_folder = "output_mel_spectrograms_d"  # Folder where the mel spectrograms will be saved
+audio_file = "recorded_audio_bmin.wav"  # Update with your audio file path
+output_folder = "output_mel_spectrograms"  # Folder where the mel spectrograms will be saved
 split_audio_and_save_mel_spectrograms(audio_file, output_folder, chunk_size_ms=50)

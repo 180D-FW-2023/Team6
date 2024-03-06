@@ -21,7 +21,7 @@ TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
 p = pyaudio.PyAudio()
 
 FFT_SIZE = 4096
-SAMPLE_RATE = 22050
+SAMPLE_RATE = 44100
 # open stream
 buffer_size = FFT_SIZE
 pyaudio_format = pyaudio.paFloat32
@@ -48,9 +48,9 @@ else:
 tolerance = 0.8
 win_s = FFT_SIZE # fft size
 hop_s = buffer_size # hop size
-pitch_o = aubio.pitch("default", win_s, hop_s, samplerate)
-pitch_o.set_unit("midi")
-pitch_o.set_tolerance(tolerance)
+#pitch_o = aubio.pitch("default", win_s, hop_s, samplerate)
+#pitch_o.set_unit("midi")
+#pitch_o.set_tolerance(tolerance)
 o = aubio.onset("default", win_s, hop_s, samplerate)
 onsets = []
 max_buffer = [0]
@@ -280,10 +280,10 @@ while True:
 
 
         #librosa pitch
-        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
-        print("max_noise:" +  str(max_noise))
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -19).all(1)
+        max_noise = np.max(np.abs(librosa.stft(signal, n_fft=FFT_SIZE,  window = 'hamming')))
+        #print("max_noise:" +  str(max_noise))
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, n_fft=FFT_SIZE, window = 'hamming')), ref=np.max)
+        mask = (oldD[:, -10:-1] > -10).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
         newD[mask] = oldD[mask]
@@ -292,7 +292,7 @@ while True:
         pitches, magnitudes = librosa.piptrack(S=newS, sr=samplerate)
         #print(pitches[np.where(magnitudes>0)])
         #print(magnitudes[np.where(magnitudes>0)])
-        pitches_final = pitches[np.asarray(magnitudes > 0.2).nonzero()]
+        pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
         if len(pitches_final) > 0:
             notes_librosa = librosa.hz_to_note(pitches_final)
             notes_librosa = list(OrderedDict.fromkeys(notes_librosa))
@@ -305,7 +305,7 @@ while True:
         if max_noise < 40:
             l = ""
             notes_librosa = []
-        print("Librosa: " + l)
+        #print("Librosa: " + l)
         if (max_noise > 3):
             if o(signal):
                 print("%f" % o.get_last_s())
@@ -342,7 +342,7 @@ while True:
                 notes_hps.append(note_name)
 
             notes_hps_string = " ".join(notes_hps)
-            print("HPS:" + notes_hps_string)
+            #print("HPS:" + notes_hps_string)
 
 
 
@@ -370,6 +370,7 @@ while True:
             count += 1
 
         both_notes = []
+        
         note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
         for pair in note_pairs:
             letter1, letter2 = pair
@@ -377,6 +378,8 @@ while True:
             if letter1 in notes_hps and letter2 in notes_librosa:
                 #print(pair)
                 both_notes.append(letter1)
+        
+
         '''
         if "C3" in notes_hps:
             if "C♯3" not in notes_librosa:
