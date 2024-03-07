@@ -79,11 +79,15 @@ while True:
         )
         #print(note_events)
         third_items = [row[2] for row in note_events]
-        print(third_items)
+        #print(third_items)
         notes = []
         for i in third_items:
             notes.append(librosa.midi_to_note(i))
-        print(notes)
+        if notes != []:
+            # print(notes)
+            with open("output.txt", "a", encoding='utf-8') as f:
+                print(notes, file=f)
+
     except KeyboardInterrupt:
         print("*** Ctrl+C pressed, exiting")
         break

@@ -67,7 +67,7 @@ fft_len = FFT_SIZE
 output_folder = 'C:\Team6'
 
 # Load TFLite model and allocate tensors.
-interpreter = tf.lite.Interpreter(model_path="/home/pi/model.tflite")
+interpreter = tf.lite.Interpreter(model_path="C:/Users/enoch/Downloads/model.tflite")
 interpreter.allocate_tensors()
 
 # Get input and output details
@@ -120,7 +120,9 @@ while True:
 
         # Print the classes
         print("Classes whose values are above", threshold)
-        print(classes_above_threshold)           
+        print(classes_above_threshold)
+        with open("output.txt", "a", encoding='utf-8') as f:
+            print(classes_above_threshold, file=f)           
                 
 
 
