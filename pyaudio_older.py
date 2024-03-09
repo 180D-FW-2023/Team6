@@ -83,6 +83,7 @@ def remove_dc_offset(fft_res):
     fft_res[0] = 0.0
     fft_res[1] = 0.0
     fft_res[2] = 0.0
+    fft_res[3] = 0.0
     return fft_res
 
 def freq_for_note(base_note, note_index):
@@ -230,7 +231,7 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
     return freqs_out_tmp
 
 def note_threshold_scaled_by_RMS(buffer_rms):
-    note_threshold = 1000.0 * (4 / 0.090) * buffer_rms / 2
+    note_threshold = 8000.0 * (4 / 0.090) * buffer_rms / 2
     return note_threshold
 
 def normalize(arr):
@@ -289,7 +290,7 @@ while True:
         max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
         # print("max_noise:" +  str(max_noise))
         oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -70).all(1)
+        mask = (oldD[:, -10:-1] > -22).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
         newD[mask] = oldD[mask]
