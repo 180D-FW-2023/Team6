@@ -70,7 +70,7 @@ def divide_buffer_into_non_overlapping_chunks(buffer, max_len):
 def getFFT(data, rate):
     # Returns fft_freq and fft, fft_res_len.
     len_data = len(data)
-    data = data * np.hamming(len_data)
+    data = data * np.hanning(len_data)
     fft = np.fft.rfft(data)
     fft = np.abs(fft)
     ret_len_FFT = len(fft)
@@ -287,9 +287,9 @@ while True:
 
 
         #librosa pitch
-        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
+        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hann')))
         # print("max_noise:" +  str(max_noise))
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hann')), ref=np.max)
         mask = (oldD[:, -10:-1] > -22).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
