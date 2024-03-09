@@ -22,7 +22,7 @@ p = pyaudio.PyAudio()
 import matplotlib.pyplot as plt
 
 FFT_SIZE = 6144
-SAMPLE_RATE = 48000
+SAMPLE_RATE = 44100
 # open stream
 buffer_size = FFT_SIZE
 pyaudio_format = pyaudio.paFloat32
@@ -405,6 +405,7 @@ while True:
 
         both_notes = []
         
+        '''
         #note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
         note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("B3", "B4")]
         for pair in note_pairs:
@@ -413,7 +414,7 @@ while True:
             if letter1 in notes_hps and letter2 in notes_librosa:
                 #print(pair)
                 both_notes.append(letter1)
-        
+        '''
         for nl in notes_librosa:
             if nl in notes_hps:
                 both_notes.append(nl)
