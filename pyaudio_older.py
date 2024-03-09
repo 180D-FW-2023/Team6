@@ -388,7 +388,10 @@ while True:
         # print("hps: ", notes_hps)
         both_notes = list(set(both_notes))
         both_notes_string = " ".join(both_notes)
-        print(both_notes_string)
+        if both_notes_string != "":
+            print("Librosa: " + l)
+            print("HPS: " + notes_hps_string)
+            print("Combined:" + both_notes_string)     
 
         if outputsink:
             outputsink(signal, len(signal))
