@@ -22,7 +22,7 @@ p = pyaudio.PyAudio()
 import matplotlib.pyplot as plt
 
 FFT_SIZE = 6144
-SAMPLE_RATE = 44100
+SAMPLE_RATE = 48000
 # open stream
 buffer_size = FFT_SIZE
 pyaudio_format = pyaudio.paFloat32
@@ -259,6 +259,19 @@ def to_str_f4(value):
 
 ordered_note_freq = get_all_notes_freq()
 
+def replace_last_number_with_less(array):
+    new_array = []
+    for item in array:
+        last_char = item[-1]
+        if last_char.isdigit():
+            new_last_char = str(int(last_char) - 1)
+            new_item = item[:-1] + new_last_char
+            new_array.append(new_item)
+        else:
+            # If the last character is not a digit, simply append it as it is.
+            new_array.append(item)
+    return new_array
+
 print("*** starting recording")
 while True:
     try:
@@ -312,12 +325,14 @@ while True:
             #magnitudes_librosa = []
         #print(pitches_final)
         #print(notes)
-        l = " ".join(notes_librosa)
-        #m = " ".join(str(magnitudes_librosa))
         if max_noise < 40:
             l = ""
             #m = ""
             notes_librosa = []
+        #notes_librosa2 = replace_last_number_with_less(notes_librosa)
+        l = " ".join(notes_librosa)
+        #m = " ".join(str(magnitudes_librosa))
+
             #magnitudes_librosa = []
         #if l != "":
         #print("Librosa: " + l)

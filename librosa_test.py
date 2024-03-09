@@ -10,9 +10,21 @@ import paho.mqtt.client as mqtt
 import numpy as np
 
 fs = 44100  # Sample rate
-seconds = 0.05 # Duration of recording
+seconds = 0.1 # Duration of recording
 record = 0 #whether or not to record
 
+def replace_last_number_with_less(array):
+    new_array = []
+    for item in array:
+        last_char = item[-1]
+        if last_char.isdigit():
+            new_last_char = str(int(last_char) - 1)
+            new_item = item[:-1] + new_last_char
+            new_array.append(new_item)
+        else:
+            # If the last character is not a digit, simply append it as it is.
+            new_array.append(item)
+    return new_array
 
 if record == 1:
     myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
@@ -28,8 +40,9 @@ y = np.asarray(data).astype(float)
 #f0, voiced_flag, voiced_probs = librosa.pyin(y,fmin=librosa.note_to_hz('C2'),fmax=librosa.note_to_hz('C7'))
 #times = librosa.times_like(f0)
 max_noise = np.max(np.abs(librosa.stft(y)))
+S=librosa.stft(y, n_fft=4096)
 print(max_noise)
-oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y, n_fft=8192)), ref=np.max)
+oldD = librosa.amplitude_to_db(np.abs(librosa.stft(y, n_fft=4096)), ref=np.max)
 mask = (oldD[:, -10:-1] > -20).all(1)
 blank = -80
 newD = np.full_like(oldD, blank)
@@ -45,6 +58,7 @@ if len(pitches_final) > 0:
     notes = list(OrderedDict.fromkeys(notes))
 else:
     notes = ""
+pitches_final = replace_last_number_with_less(pitches_final)
 print("pitches" + str(pitches_final))
 print(notes)
 l = " ".join(notes)
@@ -60,15 +74,11 @@ print(detected)
 
 fig, ax = plt.subplots()
 
-img = librosa.display.specshow(librosa.amplitude_to_db(np.abs(librosa.stft(y)),ref=np.max),y_axis='log', x_axis='time', ax=ax)
+img = librosa.display.specshow(newS,y_axis='fft_note', x_axis='time', ax=ax)
 
-ax.set_title('Power spectrogram')
+ax.set_title('Spectrogram')
+fig.colorbar(img, ax=ax, format="%+2.0f")
 
-fig.colorbar(img, ax=ax, format="%+2.0f dB")
-
-ax.set_title('Power spectrogram')
-
-fig.colorbar(img, ax=ax, format="%+2.0f dB")
 plt.show()
 
 fig, ax = plt.subplots()
@@ -79,9 +89,6 @@ ax.set_title('Power spectrogram')
 
 fig.colorbar(img, ax=ax, format="%+2.0f dB")
 
-ax.set_title('Power spectrogram')
-
-fig.colorbar(img, ax=ax, format="%+2.0f dB")
 plt.show()
 
     

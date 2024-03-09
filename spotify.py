@@ -27,8 +27,8 @@ TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
 # initialise pyaudio
 p = pyaudio.PyAudio()
 
-FFT_SIZE = 4096
-SAMPLE_RATE = 22050
+FFT_SIZE = 8192
+SAMPLE_RATE = 44100
 # open stream
 buffer_size = FFT_SIZE
 pyaudio_format = pyaudio.paFloat32
@@ -72,7 +72,6 @@ while True:
         audiobuffer = stream.read(buffer_size)
         signal = np.frombuffer(audiobuffer, dtype=np.float32)
         write("recorded_audio.wav", samplerate, signal)
-
         model_output, midi_data, note_events = predict(
         "recorded_audio.wav",
         basic_pitch_model,
@@ -84,7 +83,7 @@ while True:
         for i in third_items:
             notes.append(librosa.midi_to_note(i))
         if notes != []:
-            # print(notes)
+            print(notes)
             with open("output.txt", "a", encoding='utf-8') as f:
                 print(notes, file=f)
 
