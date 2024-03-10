@@ -378,8 +378,6 @@ while True:
                 #print("=> freq: " + to_str_f(freq[0]) + " Hz  value: " + to_str_f(freq[1]) + " note_name: " + note_name )
                 notes_hps.append(note_name)
             notes_hps = list(OrderedDict.fromkeys(notes_hps))
-            if len(notes_hps) > 5:
-                notes_hps = notes_hps[0:5]
             notes_hps_string = " ".join(notes_hps)
             #print("HPS:" + notes_hps_string)
 
