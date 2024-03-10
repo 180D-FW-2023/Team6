@@ -563,36 +563,38 @@ while cap.isOpened():
         continue
 
     if not ref_img:
-        cv2.imshow('Pressed Key Frame', frame_img)
+        # cv2.imshow('Pressed Key Frame', frame_img)
 
-        if cv2.waitKey(1) & 0xFF == ord('s'):
-            # Color Detector
+        # if cv2.waitKey(1) & 0xFF == ord('s'):
+        #     # Color Detector
 
-            ref_at_coord, ref_angle, ref_at_detected = frame_correction(frame_img)
-            if not ref_at_detected:
-                continue
-            left_tag, right_tag = identify_april_tags(ref_at_coord)
-            color_sample_coords = get_sampling_coord(left_tag)
+        ref_at_coord, ref_angle, ref_at_detected = frame_correction(frame_img)
+        if not ref_at_detected:
+            continue
+        left_tag, right_tag = identify_april_tags(ref_at_coord)
+        color_sample_coords = get_sampling_coord(left_tag)
 
-            BGR_color_1, BGR_color_2 = get_tag_color(frame_img, color_sample_coords)
-            HSV_color_1, HSV_color_2 = BGR_to_HSV(BGR_color_1, BGR_color_2)
-            ref_lt_left_corner, ref_lt_right_corner = get_lower_corners(left_tag)
-            ref_rt_left_corner, ref_rt_right_corner = get_lower_corners(right_tag)
+        BGR_color_1, BGR_color_2 = get_tag_color(frame_img, color_sample_coords)
+        HSV_color_1, HSV_color_2 = BGR_to_HSV(BGR_color_1, BGR_color_2)
+        ref_lt_left_corner, ref_lt_right_corner = get_lower_corners(left_tag)
+        ref_rt_left_corner, ref_rt_right_corner = get_lower_corners(right_tag)
 
-            # Tag Detection
-            mask_bound = (0, 0, 640, 480)
-            roi, distances_lt_1, distances_rt_1, distances_lt_2, distances_rt_2 = reference_frame(frame_img, mask_bound,
-                                                                                                  HSV_color_1,
-                                                                                                  HSV_color_2,
-                                                                                                  ref_lt_right_corner,
-                                                                                                  ref_rt_right_corner)
-            ref_img = True
-            black_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
-                                  -0.5, -0.4]
-            black_error_bounds = [1.5 for _ in range(len(black_error_bounds))]
-            white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
-                                  -0.5, -0.4]
-            white_error_bounds = [1.5 for _ in range(len(white_error_bounds))]
+        # Tag Detection
+        mask_bound = (0, 0, 640, 480)
+        roi, distances_lt_1, distances_rt_1, distances_lt_2, distances_rt_2 = reference_frame(frame_img, mask_bound,
+                                                                                                HSV_color_1,
+                                                                                                HSV_color_2,
+                                                                                                ref_lt_right_corner,
+                                                                                                ref_rt_right_corner)
+        ref_img = True
+        
+        # TODO: CHECK THRESHOLD/SET THE CORRECT ONES
+        black_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
+                                -0.5, -0.4]
+        black_error_bounds = [1.5 for _ in range(len(black_error_bounds))]
+        white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
+                                -0.5, -0.4]
+        white_error_bounds = [1.5 for _ in range(len(white_error_bounds))]
 
     elif (ref_img):
         # April Tag Correction
@@ -626,27 +628,5 @@ while cap.isOpened():
             if(all_notes):
                 print(all_notes)
 
-            for keys in black_error_keys:
-                for i in cluster_dict_1[keys]:
-                    rows, columns = i
-
-                    frame_roi[rows][columns][0] = 0
-                    frame_roi[rows][columns][1] = 255
-                    frame_roi[rows][columns][2] = 0
-
-            for keys in white_error_keys:
-                for i in cluster_dict_2[keys]:
-                    rows, columns = i
-
-                    frame_roi[rows][columns][0] = 0
-                    frame_roi[rows][columns][1] = 125
-                    frame_roi[rows][columns][2] = 125
-
-            cv2.imshow('Pressed Key Frame', frame_img)
-
-    cv2.waitKey(1)
-    if cv2.getWindowProperty('Pressed Key Frame', cv2.WND_PROP_VISIBLE) < 1:
-        break
 
 cap.release()
-cv2.destroyAllWindows()
