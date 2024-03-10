@@ -26,6 +26,7 @@ def apply_threshold_hsv(roi, hsv_color, threshold_h=10, threshold_s=35, threshol
     upper_bound = np.array([min(180, hsv_color[0] + threshold_h), min(255, hsv_color[1] + threshold_s),
                             min(255, hsv_color[2] + threshold_v)])
     mask = cv2.inRange(roi, lower_bound, upper_bound)
+    mask = cv2.medianBlur(mask, 3)
     return mask
 
 
@@ -63,35 +64,7 @@ def find_clusters(mask, size_threshold=(50, 300)):
                 cluster_dict[index] = cluster_points
                 index += 1
 
-    # for point, cluster_idx in zip(sorted_array, clusters):
-    #     if cluster_idx != -1 :  # Ignore noise points which are labeled as -1.
-    #         cluster_dict.setdefault(cluster_idx, []).append(point.tolist())
-
     return cluster_dict
-
-
-def filter_noise_clusters(cluster_dict, size_threshold=(50, 300)):
-    """
-    Filters clusters based on size thresholds.
-
-    Parameters:
-    - cluster_dict (dict): A dictionary where each key represents a cluster index,
-      and the value is a list of points belonging to that cluster.
-    - size_threshold (tuple): A tuple of two integers where the first value is the minimum
-      number of points a cluster must have to be included, and the second value is the maximum
-      number of points a cluster can have to be included.
-
-    Returns:
-    - dict: A new dictionary containing only the clusters whose sizes are within the specified range.
-    """
-
-    filtered_clusters = {}
-    lower_limit, upper_limit = size_threshold
-    for key, points in cluster_dict.items():
-        if lower_limit < len(points) < upper_limit:
-            filtered_clusters[key] = points
-
-    return filtered_clusters
 
 
 def find_pressed_keys(ref_lt_distances, ref_rt_distances, inf_lt_distances, inf_rt_distances, displacement_threshold):
@@ -123,7 +96,7 @@ def find_pressed_keys(ref_lt_distances, ref_rt_distances, inf_lt_distances, inf_
         for i in range(len(displacements)):
             if displacements[i] > displacement_threshold[i]:
                 key_pressed.append(i)
-                print(displacements)
+                # print(displacements)
 
     return key_pressed
 
@@ -224,12 +197,12 @@ def inference_frame(inf_frame, mask_bound, hsv_color_1, hsv_color_2, ref_distanc
     # black
     mask_1 = apply_threshold_hsv(inf_roi_hsv, hsv_color_1)
     cluster_dict_1 = find_clusters(mask_1)
-    cv2.imshow("mask 1", mask_1)
+    # cv2.imshow("mask 1", mask_1)
 
     # white
     mask_2 = apply_threshold_hsv(inf_roi_hsv, hsv_color_2)
     cluster_dict_2 = find_clusters(mask_2)
-    cv2.imshow("mask 2", mask_2)
+    # cv2.imshow("mask 2", mask_2)
 
     x_centroids_1, y_centroids_1, _ = process_clusters(cluster_dict_1)
     x_centroids_2, y_centroids_2, _ = process_clusters(cluster_dict_2)
@@ -507,8 +480,8 @@ def identify_april_tags(corners):
     return left_tag, right_tag
 
 
-white_keys = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
-black_keys = ['C#', 'D#', 'F#', 'G#', 'A#']
+white_keys = ['A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4']
+black_keys = ['A#2', 'C#3', 'D#3', 'F#3', 'G#3', 'A#3', 'C#4', 'D#4', 'F#4', 'G#4']
 
 
 def encode_to_scale(values, scale):
@@ -535,10 +508,7 @@ def encode_to_scale(values, scale):
     return encoded_notes
 
 
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-ref_img = False
-count = 0
-CAPTURE_COUNT = 30
+
 
 # Initialize the AprilTag detector
 at_detector = Detector(families='tag36h11',
@@ -549,84 +519,133 @@ at_detector = Detector(families='tag36h11',
                        decode_sharpening=0.25,
                        debug=0)
 
-while cap.isOpened():
+MAX_ATTEMPTS = 5
+reattempt = 0
 
-    success, frame_img = cap.read()
-    frame_img = cv2.rotate(frame_img, cv2.ROTATE_180)
+while reattempt < MAX_ATTEMPTS:
+    try:
+        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        ref_img = False
+        count = 0
+        CAPTURE_COUNT = 50
 
-    if not success:
-        print("Ignoring empty camera frame.")
-        break
+        while cap.isOpened():
 
-    if count < CAPTURE_COUNT:
-        count += 1
-        continue
+            success, frame_img = cap.read()
+            frame_img = cv2.rotate(frame_img, cv2.ROTATE_180)
 
-    if not ref_img:
-        # cv2.imshow('Pressed Key Frame', frame_img)
+            if not success:
+                print("Ignoring empty camera frame.")
+                break
 
-        # if cv2.waitKey(1) & 0xFF == ord('s'):
-        #     # Color Detector
+            if count < CAPTURE_COUNT:
+                count += 1
+                continue
 
-        ref_at_coord, ref_angle, ref_at_detected = frame_correction(frame_img)
-        if not ref_at_detected:
-            continue
-        left_tag, right_tag = identify_april_tags(ref_at_coord)
-        color_sample_coords = get_sampling_coord(left_tag)
+            if not ref_img:
+                # cv2.imshow('Pressed Key Frame', frame_img)
 
-        BGR_color_1, BGR_color_2 = get_tag_color(frame_img, color_sample_coords)
-        HSV_color_1, HSV_color_2 = BGR_to_HSV(BGR_color_1, BGR_color_2)
-        ref_lt_left_corner, ref_lt_right_corner = get_lower_corners(left_tag)
-        ref_rt_left_corner, ref_rt_right_corner = get_lower_corners(right_tag)
+                # if cv2.waitKey(1) & 0xFF == ord('s'):
+                #     # Color Detector
 
-        # Tag Detection
-        mask_bound = (0, 0, 640, 480)
-        roi, distances_lt_1, distances_rt_1, distances_lt_2, distances_rt_2 = reference_frame(frame_img, mask_bound,
-                                                                                                HSV_color_1,
-                                                                                                HSV_color_2,
-                                                                                                ref_lt_right_corner,
-                                                                                                ref_rt_right_corner)
-        ref_img = True
-        
-        # TODO: CHECK THRESHOLD/SET THE CORRECT ONES
-        black_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
-                                -0.5, -0.4]
-        black_error_bounds = [1.5 for _ in range(len(black_error_bounds))]
-        white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
-                                -0.5, -0.4]
-        white_error_bounds = [1.5 for _ in range(len(white_error_bounds))]
+                ref_at_coord, ref_angle, ref_at_detected = frame_correction(frame_img)
+                if not ref_at_detected:
+                    continue
+                left_tag, right_tag = identify_april_tags(ref_at_coord)
+                color_sample_coords = get_sampling_coord(left_tag)
 
-    elif (ref_img):
-        # April Tag Correction
-        inf_at_coord, inf_angle, inf_at_detected = frame_correction(frame_img)
+                BGR_color_1, BGR_color_2 = get_tag_color(frame_img, color_sample_coords)
+                HSV_color_1, HSV_color_2 = BGR_to_HSV(BGR_color_1, BGR_color_2)
+                ref_lt_left_corner, ref_lt_right_corner = get_lower_corners(left_tag)
+                ref_rt_left_corner, ref_rt_right_corner = get_lower_corners(right_tag)
 
-        if (inf_at_detected):
-            left_tag, right_tag = identify_april_tags(inf_at_coord)
-            inf_lt_left_corner, inf_lt_right_corner = get_lower_corners(left_tag)
-            inf_rt_left_corner, inf_rt_right_corner = get_lower_corners(right_tag)
+                # Tag Detection
+                mask_bound = (0, 0, 640, 480)
+                roi, distances_lt_1, distances_rt_1, distances_lt_2, distances_rt_2 = reference_frame(frame_img, mask_bound,
+                                                                                                        HSV_color_1,
+                                                                                                        HSV_color_2,
+                                                                                                        ref_lt_right_corner,
+                                                                                                        ref_rt_right_corner)
+                ref_img = True
 
-            # Tag Detection
-            frame_roi, black_error_keys, white_error_keys, cluster_dict_1, cluster_dict_2 = inference_frame(frame_img,
-                                                                                                            mask_bound,
-                                                                                                            HSV_color_1,
-                                                                                                            HSV_color_2,
-                                                                                                            distances_lt_1,
-                                                                                                            distances_rt_1,
-                                                                                                            distances_lt_2,
-                                                                                                            distances_rt_2,
-                                                                                                            inf_lt_right_corner,
-                                                                                                            inf_rt_right_corner,
-                                                                                                            roi,
-                                                                                                            threshold=40,
-                                                                                                            error_bound_1=black_error_bounds,
-                                                                                                            error_bound_2=white_error_bounds)
+                # TODO: CHECK THRESHOLD/SET THE CORRECT ONES
+                black_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
+                                        -0.5, -0.4]
+                black_error_bounds = [1.8 for _ in range(len(black_error_bounds))]
+                white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
+                                        -0.5, -0.4]
+                white_error_bounds = [1.6 for _ in range(len(white_error_bounds))]
+                white_error_bounds[9:] = [1.0 for _ in range(len(white_error_bounds)-9)]
+                white_error_bounds[-1] = 0.85
 
-            encoded_notes_black = encode_to_scale(black_error_keys, black_keys)
-            encoded_notes_white = encode_to_scale(white_error_keys, white_keys)
-            all_notes = encoded_notes_white + encoded_notes_black
+                print("Reference frame captured")
 
-            if(all_notes):
-                print(all_notes)
+            elif (ref_img):
+                # April Tag Correction
+                inf_at_coord, inf_angle, inf_at_detected = frame_correction(frame_img)
+
+                if (inf_at_detected):
+                    left_tag, right_tag = identify_april_tags(inf_at_coord)
+                    inf_lt_left_corner, inf_lt_right_corner = get_lower_corners(left_tag)
+                    inf_rt_left_corner, inf_rt_right_corner = get_lower_corners(right_tag)
+
+                    # Tag Detection
+                    frame_roi, black_error_keys, white_error_keys, cluster_dict_1, cluster_dict_2 = inference_frame(frame_img,
+                                                                                                                    mask_bound,
+                                                                                                                    HSV_color_1,
+                                                                                                                    HSV_color_2,
+                                                                                                                    distances_lt_1,
+                                                                                                                    distances_rt_1,
+                                                                                                                    distances_lt_2,
+                                                                                                                    distances_rt_2,
+                                                                                                                    inf_lt_right_corner,
+                                                                                                                    inf_rt_right_corner,
+                                                                                                                    roi,
+                                                                                                                    threshold=40,
+                                                                                                                    error_bound_1=black_error_bounds,
+                                                                                                                    error_bound_2=white_error_bounds)
+
+                    encoded_notes_black = encode_to_scale(black_error_keys, black_keys)
+                    encoded_notes_white = encode_to_scale(white_error_keys, white_keys)
+                    all_notes = encoded_notes_white + encoded_notes_black
+
+                    if(all_notes):
+                        print(all_notes)
+
+                    # for keys in black_error_keys:
+                    #     for i in cluster_dict_1[keys]:
+                    #         rows, columns = i
+                    #
+                    #         frame_roi[rows][columns][0] = 0
+                    #         frame_roi[rows][columns][1] = 255
+                    #         frame_roi[rows][columns][2] = 0
+                    #
+                    # for keys in white_error_keys:
+                    #     for i in cluster_dict_2[keys]:
+                    #         rows, columns = i
+                    #
+                    #         frame_roi[rows][columns][0] = 255
+                    #         frame_roi[rows][columns][1] = 0
+                    #         frame_roi[rows][columns][2] = 0
+                    #
+                    # cv2.imshow('Pressed Key Frame', frame_img)
+                    #
+                    # cv2.waitKey(1)
+                    # if cv2.getWindowProperty('Pressed Key Frame', cv2.WND_PROP_VISIBLE) < 1:
+                    #     break
 
 
-cap.release()
+        # cap.release()
+        # cv2.destroyAllWindows()
+
+    except Exception as e:
+        print(e)
+        print('Reattempt: ', reattempt)
+        reattempt += 1
+        # cap.release()
+        # cv2.destroyAllWindows()
+
+# cap.release()
+# cv2.destroyAllWindows()
+
+print('Max attempts reached')
