@@ -1,64 +1,84 @@
-<template>
-  <v-app>
-    <v-container>
-      <!-- First Button Group: Chords and Scales -->
-      <v-btn-toggle v-model="selectedOption" mandatory>
-        <v-btn value="Chord">Chords</v-btn>
-        <v-btn value="Scale">Scales</v-btn>
-      </v-btn-toggle>
+  <template>
+    <v-app>
+      <v-container>
+        <!-- First Button Group: Chords and Scales -->
+        <v-btn-toggle v-model="selectedOption" mandatory>
+          <v-btn value="Chord">Chords</v-btn>
+          <v-btn value="Scale">Scales</v-btn>
+        </v-btn-toggle>
 
-      <!-- Second Button Group: Major and Minor -->
-      <v-btn-toggle v-model="selectedType" mandatory>
-        <v-btn value="Major">Major</v-btn>
-        <v-btn value="Minor">Minor</v-btn>
-      </v-btn-toggle>
+        <!-- Second Button Group: Major and Minor -->
+        <v-btn-toggle v-model="selectedType" mandatory>
+          <v-btn value="Major">Major</v-btn>
+          <v-btn value="Minor">Minor</v-btn>
+        </v-btn-toggle>
 
-      <!-- Slider for A to F -->
-      <!-- Slider for A to F -->
-      <v-select
-        v-model="selectedLetter"
-        :items="letters"
-        label="Select Letter"
-        outlined
-      ></v-select>
+        <!-- Slider for A to F -->
+        <!-- Slider for A to F -->
+        <v-select
+          v-model="selectedLetter"
+          :items="letters"
+          label="Select Letter"
+          outlined
+        ></v-select>
 
-      <!-- Test Button -->
-      <v-btn @click="openDialog('Test')">Test</v-btn>
+        <!-- Test Button -->
+        <v-btn @click="openDialog('Test')">Test</v-btn>
 
-      <!-- Learn Button -->
-      <v-btn @click="openDialog('Learn')">Learn</v-btn>
+        <!-- Learn Button -->
+        <v-btn @click="openDialog('Learn')">Learn</v-btn>
 
-      <!-- Dialog for Testing or Learning -->
-      <v-dialog v-model="dialog" persistent max-width="300px">
-        <v-card>
-          <v-card-title class="headline">{{ selectedAction }}</v-card-title>
+        <!-- Dialog for Testing or Learning -->
+        <v-dialog v-model="dialog" persistent max-width="300px">
+          <v-card>
+            <v-card-title class="headline">{{ selectedAction }}</v-card-title>
+            <v-card-text>
+              <div>
+                {{ selectedLetter }} {{ selectedType }} {{ selectedOption }}
+              </div>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="green darken-1" text @click="dialog = false"
+                >Close</v-btn
+              >
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-container>
+      <v-container>
+        <div><h1>Statistics</h1></div>
+        <v-card class="mb-4">
+          <v-card-title class="text-h6">Last test results</v-card-title>
           <v-card-text>
-            <div>
-              {{ selectedLetter }} {{ selectedType }} {{ selectedOption }}
+            <div class="card-container">
+              <v-card v-for="(value, index) in lastResult" :key="index"
+                :class="{'item-style': true, 'text-green': lastCorrectIndices[index] === 0, 'text-red': lastCorrectIndices[index] === 1}"
+                class="square-card"
+                rounded="lg"
+              >
+                <v-card-text class="card-text text-center">{{ value }}</v-card-text>
+              </v-card>
             </div>
           </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="green darken-1" text @click="dialog = false"
-              >Close</v-btn
-            >
-          </v-card-actions>
         </v-card>
-      </v-dialog>
-    </v-container>
-    <v-container>
-      <div><h1>Statistics</h1></div>
-      <span v-for="(value, index) in lastResult" :key="index"
-         :class="{'item-style': true, 'text-green': lastCorrectIndices[index] === 0, 'text-red': lastCorrectIndices[index] === 1}">
-      {{ value }}
-    </span>
-      <Line :data="chartData" :options="chartOptions" :key="chartKey"  />
-      <img src="http://localhost:5000//uploads/image.jpg">
-      <v-img v-if="selectedImageUrl" :src="selectedImageUrl.value"></v-img>
-    </v-container>
+        <v-row>
+          <v-col cols="12" sm="6" md="5">
+            <v-responsive :aspect-ratio="1">
+              <img src="http://localhost:5000//uploads/image.jpg" class="responsive-image">
+            </v-responsive>
+          </v-col>
+          <v-col cols="12" sm="6" md="5">
+            <v-responsive :aspect-ratio="1">
+              <Line :data="chartData" :options="chartOptions" :key="chartKey" class="chart" />
+            </v-responsive>
+          </v-col>
+        </v-row>
+      </v-container>
 
-  </v-app>
-</template>
+
+    </v-app>
+  </template>
 
 <script setup>
 import {
@@ -72,7 +92,7 @@ import {
   Legend
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
-
+import { VRow, VCol } from "vuetify/components";
 import { ref, onMounted, watch } from "vue";
 import io from "socket.io-client";
 import axios from "axios";
@@ -180,20 +200,22 @@ ChartJS.register(
   Tooltip,
   Legend
 )
-
 const updateChartData = (scores) => {
   console.log(scores);
-  if (!scores || scores.length === 0) return;
-
-  chartData.value.labels = scores.map((_, index) => `Attempt ${index + 1}`);
-  chartData.value.datasets[0].data = scores;
+  if (!scores || scores.length === 0) {
+    // If scores is undefined or an empty array, clear the chart data
+    chartData.value.labels = [];
+    chartData.value.datasets[0].data = [];
+  } else {
+    // If scores has data, update the chart data as before
+    chartData.value.labels = scores.map((_, index) => `Attempt ${index + 1}`);
+    chartData.value.datasets[0].data = scores;
+  }
 
   // This step is crucial for triggering reactivity when updating nested properties in Vue 3
   chartData.value = { ...chartData.value };
   chartKey.value++; // Increment the key to force re-render
-
 };
-
 
 const getStats = async (type, modality, key) => {
   let endpoint = "";
@@ -221,6 +243,7 @@ const getStats = async (type, modality, key) => {
   } catch (error) {
     console.error(error);
     lastResult.value = []; // Error message
+    updateChartData([]);
   }
 };
 
@@ -307,5 +330,49 @@ const openDialog = (action) => {
 .item-style {
   display: inline-block; /* or 'inline', depending on your needs */
   margin-right: 10px; /* Adjust spacing between items as needed */
+}
+
+.image-container {
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%; /* Maintain a square aspect ratio */
+  position: relative;
+}
+
+.responsive-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Adjust as needed (e.g., 'cover', 'fill') */
+}
+
+.chart {
+  width: 100%;
+  height: 100%;
+}
+
+
+.card-container {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.square-card {
+  flex: 0 0 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-text {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.text-center {
+  text-align: center;
 }
 </style>

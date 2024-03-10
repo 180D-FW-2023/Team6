@@ -195,7 +195,8 @@ def update_record_in_db(key, type_, modality, new_result, new_score, correct_ind
             '$push': {'results': new_result, 'scores': new_score},
             '$set': {'correct_indices': correct_indices},
             '$inc': {'attempts': 1}
-        }
+        },
+        upsert=True
     )
     return update_response
 
