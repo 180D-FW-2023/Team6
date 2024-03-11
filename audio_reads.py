@@ -52,11 +52,7 @@ else:
 tolerance = 0.8
 win_s = FFT_SIZE # fft size
 hop_s = buffer_size # hop size
-pitch_o = aubio.pitch("default", win_s, hop_s, samplerate)
-pitch_o.set_unit("midi")
-pitch_o.set_tolerance(tolerance)
-o = aubio.onset("default", win_s, hop_s, samplerate)
-onsets = []
+
 max_buffer = [0]
 buf_const = 2
 fft_len = FFT_SIZE
@@ -343,10 +339,7 @@ while True:
             l = ""
             notes_librosa = []
         #print("Librosa: " + l)
-        if (max_noise > 3):
-            if o(signal):
-                print("%f" % o.get_last_s())
-                onsets.append(o.get_last())
+
         
         #HPS pitch
         buffer_chunks = divide_buffer_into_non_overlapping_chunks(signal, fft_len)
@@ -405,7 +398,7 @@ while True:
 
             count += 1
         both_notes = []
-        note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
+        note_pairs = [("A3", "A3"), ("A#2", "A#3"), ("B2", "B3"), ("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
         for pair in note_pairs:
             letter1, letter2 = pair
             # Check if the extracted letters match and append if conditions are met
@@ -421,6 +414,7 @@ while True:
         # print("hps: ", notes_hps)
         both_notes = list(set(both_notes))
         both_notes_string = " ".join(both_notes)
+        print("Both notes string: " + both_notes_string)
     
 
         try:
