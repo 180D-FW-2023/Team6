@@ -3,6 +3,8 @@ import led_module as led
 # import audio_module as audio
 from rpi_ws281x import Color
 import zmq
+from datetime import datetime, timedelta
+import time
 
 '''
 modes:
@@ -14,6 +16,7 @@ modes:
 target_notes = []
 played_notes = []
 mode = 0 
+chord = False
 
 ################## MQTT SETUP #####################
 
@@ -34,7 +37,7 @@ def on_disconnect(client, userdata, rc):
         print('Expected Disconnect')
 
 def on_message(client, userdata, message):
-    global target_notes, mode
+    global target_notes, played_notes, mode, chord
     
     led.colorWipeAll(Color(128,0,0), wait_ms=50)
     led.colorWipeAll(Color(0,128,0), wait_ms=50)
@@ -48,13 +51,19 @@ def on_message(client, userdata, message):
     
     target_notes = scale.split()
     played_notes = []
+    chord = len(target_notes) == 3
     print(target_notes)
     
     match topic:
         case "team6/lesson":
             mode = 1
             # set first color to blue
-            led.showOneColorOnly(led.note_to_led_index[target_notes[0]], color=Color(0,0,128))
+            if chord:
+                # Chord mode
+                led.multiColor([led.note_to_led_index[note] for note in target_notes], color=Color(0,0,128))
+            else:
+                # Scales mode
+                led.showOneColorOnly(led.note_to_led_index[target_notes[0]], color=Color(0,0,128))
         case "team6/test":
             mode = 2
         case _:
@@ -75,35 +84,73 @@ client.on_message = on_message
 client.connect_async('test.mosquitto.org')
 client.loop_start()
 
-
-################## MAIN LOOP #####################
+###################### MODES SETUP ######################
 
 print("Initializing LED strip")
 led.start_sequence()
+recently_on = []    # TODO: consider combining this with played_notes
 
-def lesson_mode(top_note):
-    global mode, target_notes, played_notes
+def set_note_on(note):
+    global recently_on
+    now = datetime.now()
+    recently_on.append((note, now))
+
+
+def check_target_notes_within_interval(time_interval=0.5):
+    global recently_on, target_notes
+    now = datetime.now()
+
+    # Filter out notes not within the TIME_INTERVAL
+    valid_notes = [(note, timing) for note, timing in recently_on if now - timing <= timedelta(seconds=time_interval)]
+
+    # Check if there are exactly 3 target notes within the interval
+    if len(valid_notes) == 3:
+        played_notes = {note for note, _ in valid_notes}
+        
+        # Check if played notes match target notes exactly
+        if sorted(played_notes) == sorted(target_notes):
+            return True
+
+    # If there are more than 3 notes or the notes don't match the target notes
+    return False
+
+def finish_mode_cleanup():
+    global mode, played_notes, target_notes
+    print("Finished ", 'test' if mode == 2 else 'lesson', " mode!")
+    time.sleep(1)
+    mode = 0
+    led.start_sequence()
+    played_notes = []
+    target_notes = []
     
-    print("TARGET ", target_notes)
-    print("RECORDED ", played_notes)
+def lesson_mode(notes):
+    global mode, target_notes, played_notes, chord
     
-    if top_note == target_notes[len(played_notes)]:
-        print("Correct!")
-        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
-        played_notes.append(notes[0])
+    if chord:
+        for note in notes:
+            set_note_on(note)
+        result = check_target_notes_within_interval()
+        if result:
+            finish_mode_cleanup()
+        else:
+            print("Failed: ", recently_on)
     else:
-        print("Wrong!")
-    
-    
-    if len(played_notes) == len(target_notes):
-        print("Finished!")
-        mode = 0
-        led.start_sequence()
-        played_notes = []
-        target_notes = []
-    else:
-        # sets next note to blue
-        led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,0,128))
+        print("TARGET ", target_notes)
+        print("RECORDED ", played_notes)
+        
+        top_note = notes[0]
+        if top_note == target_notes[len(played_notes)]:
+            print("Correct!")
+            led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
+            played_notes.append(top_note)
+        else:
+            print("Wrong!")
+        
+        if len(played_notes) == len(target_notes):
+            finish_mode_cleanup()
+        else:
+            # sets next note to blue
+            led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,0,128))
 
 
 def test_mode(top_note):
@@ -119,11 +166,9 @@ def test_mode(top_note):
     if top_note == target_notes[len(played_notes)]:
         print("Correct!")
         led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(0,128,0))
-        # led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
     else:
         print("Wrong!")
         led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(128,0,0))
-        # led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(128,0,0))
     
     played_notes.append(top_note)
     
@@ -144,6 +189,8 @@ context = zmq.Context()
 subscriber = context.socket(zmq.PULL)
 subscriber.bind("tcp://*:5556")
 
+################## MAIN LOOP #####################
+
 try:
     while True:
         l = ""
@@ -157,20 +204,18 @@ try:
             continue
         
         notes = [note.strip().upper() for note in l.split()]
-        top_note = notes[0] if notes else None
 
-        if top_note:
+        if notes:
             
             match mode:
                 case 1:
                     # lesson mode
                     print("----- Lesson mode -----")
-                    print("top_note: ", top_note)
-                    lesson_mode(top_note)
+                    lesson_mode(notes)
                 case 2:
                     # test mode
                     print("----- Test mode -----")
-                    test_mode(top_note)
+                    test_mode(notes)
                 case _:
                     # default note playing - shows white light
                     print("----- Default mode -----")
