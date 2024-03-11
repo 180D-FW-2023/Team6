@@ -74,7 +74,7 @@ def divide_buffer_into_non_overlapping_chunks(buffer, max_len):
 def getFFT(data, rate):
     # Returns fft_freq and fft, fft_res_len.
     len_data = len(data)
-    data = data * np.hamming(len_data)
+    data = data * np.hanning(len_data)
     fft = np.fft.rfft(data)
     fft = np.abs(fft)
     ret_len_FFT = len(fft)
@@ -87,6 +87,7 @@ def remove_dc_offset(fft_res):
     fft_res[0] = 0.0
     fft_res[1] = 0.0
     fft_res[2] = 0.0
+    fft_res[3] = 0.0
     return fft_res
 
 def freq_for_note(base_note, note_index):
@@ -234,7 +235,7 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
     return freqs_out_tmp
 
 def note_threshold_scaled_by_RMS(buffer_rms):
-    note_threshold = 1000.0 * (4 / 0.090) * buffer_rms / 2
+    note_threshold = 8000.0 * (4 / 0.090) * buffer_rms / 2
     return note_threshold
 
 def normalize(arr):
@@ -317,10 +318,10 @@ while True:
 
 
         #librosa pitch
-        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
+        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hann')))
         # print("max_noise:" +  str(max_noise))
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -70).all(1)
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hann')), ref=np.max)
+        mask = (oldD[:, -10:-1] > -22).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
         newD[mask] = oldD[mask]
@@ -329,7 +330,7 @@ while True:
         pitches, magnitudes = librosa.piptrack(S=newS, sr=samplerate)
         #print(pitches[np.where(magnitudes>0)])
         #print(magnitudes[np.where(magnitudes>0)])
-        pitches_final = pitches[np.asarray(magnitudes > 0.12).nonzero()]
+        pitches_final = pitches[np.asarray(magnitudes > 0.2).nonzero()]
         if len(pitches_final) > 0:
             notes_librosa = librosa.hz_to_note(pitches_final)
             notes_librosa = list(OrderedDict.fromkeys(notes_librosa))
@@ -343,7 +344,7 @@ while True:
             l = ""
             notes_librosa = []
         #print("Librosa: " + l)
-        if (max_noise > 3):
+        if (max_noise > 40):
             if o(signal):
                 print("%f" % o.get_last_s())
                 onsets.append(o.get_last())
@@ -376,7 +377,7 @@ while True:
                 note_name = find_nearest_note(ordered_note_freq, freq[0])
                 #print("=> freq: " + to_str_f(freq[0]) + " Hz  value: " + to_str_f(freq[1]) + " note_name: " + note_name )
                 notes_hps.append(note_name)
-
+            notes_hps = list(OrderedDict.fromkeys(notes_hps))
             notes_hps_string = " ".join(notes_hps)
             #print("HPS:" + notes_hps_string)
 
@@ -405,7 +406,8 @@ while True:
 
             count += 1
         both_notes = []
-        note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
+        note_pairs = [("A2", "A3"), ("A#2", "A#3"), ("B2", "B3"), ("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
+        #note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("B3", "B4")]
         for pair in note_pairs:
             letter1, letter2 = pair
             # Check if the extracted letters match and append if conditions are met
