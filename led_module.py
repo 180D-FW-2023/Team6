@@ -15,20 +15,20 @@ LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 ################ LED CODE #####################
 
 recently_on = {i:None for i in range(87)}
-offset = 27
+offset = 0
 
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
 # Intialize the library (must be called once before other functions).
 strip.begin()
 
-note_to_led_index_specific = {
+note_to_led_index = {
     'G#4': 6, 'G4': 7, 'F#4': 8, 'F4': 9, 'E4': 10, 'D#4': 11, 'D4': 12, 'C#4': 13, 'C4': 14,
     'B3': 15, 'A#3': 16, 'A3': 17, 'G#3': 18, 'G3': 19, 'F#3': 20, 'F3': 21, 'E3': 22, 'D#3': 23, 'D3': 24, 'C#3': 25, 'C3': 26,
     'B2': 27, 'A#2': 28, 'A2': 29
 }
 
 # The same applies for the sharps with the '♯' symbol.
-note_to_led_index_specific.update({
+note_to_led_index.update({
     'G♯4': 6, 'F♯4': 8, 'D♯4': 11, 'C♯4': 13,
     'A♯3': 16, 'G♯3': 18, 'F♯3': 20, 'D♯3': 23, 'C♯3': 25,
     'A♯2': 28

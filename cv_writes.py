@@ -535,10 +535,11 @@ reattempt = 0
 
 while reattempt < MAX_ATTEMPTS:
     try:
-        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        cap = cv2.VideoCapture("/dev/video0")
         ref_img = False
         count = 0
         CAPTURE_COUNT = 50
+        prev_notes = []
 
         while cap.isOpened():
 
