@@ -10,6 +10,10 @@ import time
 import paho.mqtt.client as mqtt
 import numpy as np
 import os
+import subprocess
+import string
+import signal
+import sys
 
 
 from pymongo.mongo_client import MongoClient
@@ -40,6 +44,7 @@ app.config['MQTT_TLS_ENABLED'] = False  # Set True if your broker supports TLS
 lesson_topic = 'team6/lessons/results'
 testing_topic = 'team6/test/results'
 last_sent_test_msg = None
+script_process = None
 
 scales = {
   "C Major": "C3 D3 E3 F3 G3 A3 B3 C4",
@@ -79,25 +84,64 @@ chords = {
 mqtt_client = Mqtt(app)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for all domains
 
+process = None
+
+def start_script():
+    global process
+    script_path = "C:/Users/danie/Documents/ECE 180/Team6/full_stack/backend/posture_detection.py"
+    python_executable = sys.executable
+    process = subprocess.Popen([python_executable, script_path])
+    print("Script started with PID:", process.pid)
+
+def stop_script():
+    global process
+    if process:
+        os.kill(process.pid, signal.SIGTERM)
+        process.wait()
+        print("Script stopped.")
+    else:
+        print("No script is currently running.")
+
+    
+
+def remove_numbers(text):
+    # Create a translation table that maps digits to None
+    remove_digits = str.maketrans('', '', string.digits)
+    
+    # Use the translation table to remove digits from the string
+    result = text.translate(remove_digits)
+    
+    return result
+
+
 def process_test_result(payload):
     global last_sent_test_msg
-    # print(last_sent_test_msg)
-    dict_key = ' '.join(last_sent_test_msg[:2].split())
-    modality = last_sent_test_msg[1].split()
+    print('last sent test_msg:', last_sent_test_msg)
+    print('payload: ', payload)
+    dict_key = ' '.join(last_sent_test_msg[:7].split())
+    words = last_sent_test_msg.split(" ")
+    modality = words[1]
     correct_notes = []
     type = ""
     if 'Scale' in last_sent_test_msg:
-        type = 'scale'
+        type = 'scales'
         correct_notes = scales[dict_key].replace('*', '#').split()
     elif 'Chord' in last_sent_test_msg:
-        type = 'chord'
+        type = 'chords'
         correct_notes = chords[dict_key].replace('*', '#').split()
-
-    matching_indices = [i for i, item in enumerate(correct_notes) if item in payload]
-    score = len(matching_indices) // len(correct_notes) * 100
-    update_record_in_db(last_sent_test_msg[0], type, modality, payload, score, matching_indices)
+    payload_notes = payload.split()
+    matching_indices = [i for i, item in enumerate(correct_notes) if i < len(payload_notes) and item == payload_notes[i]]
+    boolean_indices = [0] * len(payload.split())
+    for i in range(len(boolean_indices)):
+        if i in matching_indices:
+            boolean_indices[i] = 1
+    score = (len(matching_indices) / len(correct_notes)) * 100
+    print("Score: ", score)
+    update_record_in_db(last_sent_test_msg[0], type, modality, remove_numbers(payload)[:-1], score, boolean_indices)
     print(matching_indices)
+    print(correct_notes)
     socketio.emit('update')
+    stop_script()
     return matching_indices
 
 
@@ -132,7 +176,10 @@ def handle_publish_mqtt(data):
     message = data['payload']
     if topic == 'team6/test':
         last_sent_test_msg = data['key']
+        start_script()
+        print("Last sent test msg:", last_sent_test_msg)
     mqtt_client.publish(topic, message)
+    print("publishing", topic, message)
 
 
 
@@ -188,6 +235,7 @@ def get_scale_details():
     
 
 def update_record_in_db(key, type_, modality, new_result, new_score, correct_indices):
+    print("updating record")
     collection = db[type_.lower()]
     update_response = collection.update_one(
         {'key': key, 'modality': modality},

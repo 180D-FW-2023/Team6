@@ -53,7 +53,7 @@
           <v-card-text>
             <div class="card-container">
               <v-card v-for="(value, index) in lastResult" :key="index"
-                :class="{'item-style': true, 'text-green': lastCorrectIndices[index] === 0, 'text-red': lastCorrectIndices[index] === 1}"
+                :class="{'item-style': true, 'text-green': lastCorrectIndices[index] === 1, 'text-red': lastCorrectIndices[index] === 0}"
                 class="square-card"
                 rounded="lg"
               >
@@ -236,6 +236,7 @@ const getStats = async (type, modality, key) => {
     if (response.data && Array.isArray(response.data.results) && Array.isArray(response.data.correct_indices)) {
       lastResult.value = response.data.results[response.data.results.length - 1].split(' ');
       lastCorrectIndices.value = response.data.correct_indices
+      console.log("last correct indices: ", lastCorrectIndices.value  );
     } else {
       lastResult.value = []; // Fallback message
     }
@@ -271,7 +272,7 @@ onMounted(() => {
     selectedType.value.toLowerCase(),
     selectedLetter.value
   );
-  socket.on("emit", () => {
+  socket.on("update", () => {
     getStats(
     selectedOption.value,
     selectedType.value.toLowerCase(),
@@ -304,16 +305,23 @@ const openDialog = (action) => {
   // Construct the message to send
   const messageType = selectedType.value + " " + selectedOption.value;
   const message = selectedLetter.value + " " + messageType;
-  const key = message.replace(" Scale", "");
+  let key;
+  let scale;
 
-  // Find the scale in the dictionary
-  const scale = scales[key];
+  if (message.includes("Chord")) {
+    key = message.replace(" Chord", "");
+    scale = chords[key];
+  } else if (message.includes("Scale")) {
+    key = message.replace(" Scale", "");
+    scale = scales[key];
+  }
   console.log(message);
   console.log(scale);
 
   // Determine the topic based on the action
   const topic = action === "Test" ? "team6/test" : "team6/lesson";
   // Emit the message on the socket
+  
   socket.emit("publish_mqtt", { topic: topic, payload: scale, key: message});
 };
 </script>
