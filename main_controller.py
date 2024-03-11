@@ -220,12 +220,12 @@ def test_mode(notes):
         played_notes.append(top_note)
         
         if len(played_notes) == len(target_notes):
-            finish_mode_cleanup()
             result = ''
             for i in played_notes:
                 result += i + ' '
             print(result)
             client.publish('team6/test/results', result, qos=1)
+            finish_mode_cleanup()
 
 context = zmq.Context()
 # Socket to subscribe to messages

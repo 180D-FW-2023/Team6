@@ -57,7 +57,7 @@ def rainbow(wait_ms=20, iterations=1):
         strip.show()
         time.sleep(wait_ms/1000.0)
 
-def colorWipeAll(color=Color(0,0,0), wait_ms=50):
+def colorWipeAll(color=Color(0,0,0), wait_ms=25):
     """ Wipe color across display a pixel at a time. """
     for i in range(strip.numPixels()):
         strip.setPixelColor(i, color)
