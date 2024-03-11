@@ -540,19 +540,29 @@ while reattempt < MAX_ATTEMPTS:
         count = 0
         CAPTURE_COUNT = 50
         prev_notes = []
+        FRAME_SKIP = 5
+        frame_counter = 0
 
         while cap.isOpened():
-
+            
             success, frame_img = cap.read()
             frame_img = cv2.rotate(frame_img, cv2.ROTATE_180)
 
             if not success:
                 print("Ignoring empty camera frame.")
                 break
+            
 
             if count < CAPTURE_COUNT:
                 count += 1
                 continue
+            
+            frame_counter += 1
+            if ref_img and frame_counter < FRAME_SKIP:
+                continue
+            
+            
+            frame_counter = 0
 
             if not ref_img:
                 # cv2.imshow('Pressed Key Frame', frame_img)
@@ -572,7 +582,7 @@ while reattempt < MAX_ATTEMPTS:
                 ref_rt_left_corner, ref_rt_right_corner = get_lower_corners(right_tag)
 
                 # Tag Detection
-                mask_bound = (0, 0, 640, 480)
+                mask_bound = (0, frame_img.shape[0]//2, frame_img.shape[1], frame_img.shape[0])
                 roi, distances_lt_1, distances_rt_1, distances_lt_2, distances_rt_2 = reference_frame(frame_img, mask_bound,
                                                                                                         HSV_color_1,
                                                                                                         HSV_color_2,
@@ -587,8 +597,8 @@ while reattempt < MAX_ATTEMPTS:
                 white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
                                         -0.5, -0.4]
                 white_error_bounds = [1.6 for _ in range(len(white_error_bounds))]
-                white_error_bounds[9:] = [1.0 for _ in range(len(white_error_bounds)-9)]
-                white_error_bounds[-1] = 0.85
+                white_error_bounds[9:] = [1.2 for _ in range(len(white_error_bounds)-9)]
+                # white_error_bounds[-1] = 0.85
 
                 print("Reference frame captured")
 
@@ -662,6 +672,7 @@ while reattempt < MAX_ATTEMPTS:
 
         # cap.release()
         # cv2.destroyAllWindows()
+        
 
     except Exception as e:
         print(e)

@@ -153,11 +153,13 @@ def lesson_mode(notes):
             led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,0,128))
 
 
-def test_mode(top_note):
+def test_mode(notes):
     global mode, target_notes, played_notes
     
     print("TARGET ", target_notes)
     print("RECORDED ", played_notes)
+    
+    top_note = notes[0]
     
     if led.testModeCheckDup(top_note, time_diff = 1.5):
         return
