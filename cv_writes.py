@@ -530,7 +530,7 @@ at_detector = Detector(families='tag36h11',
                        decode_sharpening=0.25,
                        debug=0)
 
-MAX_ATTEMPTS = 5
+MAX_ATTEMPTS = 100
 reattempt = 0
 
 while reattempt < MAX_ATTEMPTS:

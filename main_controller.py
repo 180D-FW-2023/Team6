@@ -115,13 +115,15 @@ def check_target_notes_within_interval(time_interval=0.5):
     return False
 
 def finish_mode_cleanup():
-    global mode, played_notes, target_notes
+    global mode, played_notes, target_notes, test_timer
     print("Finished ", 'test' if mode == 2 else 'lesson', " mode!")
-    time.sleep(1)
+    time.sleep(0.5)
     mode = 0
     led.start_sequence()
     played_notes = []
     target_notes = []
+    if test_timer:
+        test_timer = None
     
 def lesson_mode(notes):
     global mode, target_notes, played_notes, chord
@@ -153,38 +155,77 @@ def lesson_mode(notes):
             led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,0,128))
 
 
+test_timer = None
+
+def start_test_timer():
+    global test_timer
+    test_timer = datetime.now()
+
+def check_time_elapsed(elapsed_seconds=2):
+    global test_timer
+    if test_timer and (datetime.now() - test_timer).total_seconds() > elapsed_seconds:
+        return True
+    return False
+
 def test_mode(notes):
-    global mode, target_notes, played_notes
+    global mode, target_notes, played_notes, chord, test_timer
     
-    print("TARGET ", target_notes)
-    print("RECORDED ", played_notes)
+    if chord:
+        # Check for the first note and start the timer
+        if not test_timer:
+            # Assuming the first note in the list is the start
+            start_test_timer()
+            for note in notes:
+                if not led.testModeCheckDup(note):
+                    played_notes.append(note)
+            return
+        
+        # If the timer has started, check for note timing
+        for note in notes:
+            if not led.testModeCheckDup(note):
+                played_notes.append(note)
+        
+        # Check if the correct notes are played
+        if set(played_notes) == set(target_notes) and len(played_notes) == len(target_notes):
+            # If correct notes are played, end the test
+            result = ' '.join(sorted(played_notes))
+            client.publish('team6/test/results', result, qos=1)
+            finish_mode_cleanup()
+        elif check_time_elapsed():
+            # If time interval has passed, end the test with current played notes
+            result = ' '.join(sorted(played_notes))
+            client.publish('team6/test/results', result, qos=1)
+            finish_mode_cleanup()
+        else:
+            # Test is still ongoing
+            pass
     
-    top_note = notes[0]
-    
-    if led.testModeCheckDup(top_note, time_diff = 1.5):
-        return
-    
-    
-    if top_note == target_notes[len(played_notes)]:
-        print("Correct!")
-        led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(0,128,0))
     else:
-        print("Wrong!")
-        led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(128,0,0))
-    
-    played_notes.append(top_note)
-    
-    if len(played_notes) == len(target_notes):
-        print("Finished!")
-        result = ''
-        for i in played_notes:
-            result += i + ' '
-        print(result)
-        client.publish('team6/test/results', result, qos=1)
-        mode = 0
-        led.start_sequence()
-        played_notes = []
-        target_notes = []
+        print("TARGET ", target_notes)
+        print("RECORDED ", played_notes)
+        
+        top_note = notes[0]
+        
+        if led.testModeCheckDup(top_note, time_diff = 1.5):
+            return
+        
+        
+        if top_note == target_notes[len(played_notes)]:
+            print("Correct!")
+            led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(0,128,0))
+        else:
+            print("Wrong!")
+            led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(128,0,0))
+        
+        played_notes.append(top_note)
+        
+        if len(played_notes) == len(target_notes):
+            finish_mode_cleanup()
+            result = ''
+            for i in played_notes:
+                result += i + ' '
+            print(result)
+            client.publish('team6/test/results', result, qos=1)
 
 context = zmq.Context()
 # Socket to subscribe to messages
