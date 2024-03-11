@@ -372,7 +372,7 @@ while True:
 
             count += 1
         both_notes = []
-        note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
+        note_pairs = [("A2", "A3"), ("A♯2", "A♯4"), ("B2", "B3"), ("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
         for pair in note_pairs:
             letter1, letter2 = pair
             # Check if the extracted letters match and append if conditions are met
@@ -384,13 +384,13 @@ while True:
                 both_notes.append(nl)
         
         #remove duplicates
-        # print("librosa: ", notes_librosa)
-        # print("hps: ", notes_hps)
+        #print("librosa: ", notes_librosa)
+        #print("hps: ", notes_hps)
         both_notes = list(set(both_notes))
         both_notes_string = " ".join(both_notes)
         if both_notes_string != "":
-            #print("Librosa: " + l)
-            #print("HPS: " + notes_hps_string)
+            print("Librosa: " + l)
+            print("HPS: " + notes_hps_string)
             print("Combined:" + both_notes_string)     
 
         if outputsink:
