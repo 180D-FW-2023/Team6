@@ -1,0 +1,21 @@
+# LED
+rpi_ws281x==5.0.0
+adafruit-circuitpython-neopixel
+adafruit-blinka
+
+# Audio
+sounddevice
+librosa
+pyaudio
+
+# Camera
+scikit-learn
+cv2
+
+# Misc
+scipy
+matplotlib
+numpy
+paho-mqtt
+pickle
+threading
