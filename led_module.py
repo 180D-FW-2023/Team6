@@ -114,8 +114,10 @@ def check_target_notes_within_interval(target_notes, time_interval=1):
 
     # Check if there are exactly 3 target notes within the interval
     if len(valid_notes) == 3:
+        print("Here are the valid notes: ", valid_notes)
         played_notes = {note for note, _ in valid_notes}
         if sorted(played_notes) == sorted(target_notes) and len(played_notes) == len(target_notes):
+            print("Correct notes played: ", played_notes)
             return True
 
     # If there are more than 3 notes or the notes don't match the target notes
