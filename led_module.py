@@ -101,6 +101,28 @@ def turnOffExpired(on_time=0.25):
     
     strip.show()
     
+def setRecentlyOn(index):
+    now = datetime.now()
+    recently_on[index] = now
+    
+def check_target_notes_within_interval(target_notes, time_interval=1):
+    global recently_on
+    now = datetime.now()
+
+    # Filter out notes not within the TIME_INTERVAL
+    valid_notes = [(note, timing) for note, timing in recently_on if now - timing <= timedelta(seconds=time_interval)]
+
+    # Check if there are exactly 3 target notes within the interval
+    if len(valid_notes) == 3:
+        played_notes = {note for note, _ in valid_notes}
+        
+        # Check if played notes match target notes exactly
+        if sorted(played_notes) == sorted(target_notes):
+            return True
+
+    # If there are more than 3 notes or the notes don't match the target notes
+    return False
+    
 def testModeCheckDup(note, time_diff=1):
     now = datetime.now()
     

@@ -89,31 +89,6 @@ client.loop_start()
 
 print("Initializing LED strip")
 led.start_sequence()
-recently_on = []    # TODO: consider combining this with played_notes
-
-def set_note_on(note):
-    global recently_on
-    now = datetime.now()
-    recently_on.append((note, now))
-
-
-def check_target_notes_within_interval(time_interval=0.5):
-    global recently_on, target_notes
-    now = datetime.now()
-
-    # Filter out notes not within the TIME_INTERVAL
-    valid_notes = [(note, timing) for note, timing in recently_on if now - timing <= timedelta(seconds=time_interval)]
-
-    # Check if there are exactly 3 target notes within the interval
-    if len(valid_notes) == 3:
-        played_notes = {note for note, _ in valid_notes}
-        
-        # Check if played notes match target notes exactly
-        if sorted(played_notes) == sorted(target_notes):
-            return True
-
-    # If there are more than 3 notes or the notes don't match the target notes
-    return False
 
 def finish_mode_cleanup(delay=0.5):
     global mode, played_notes, target_notes, test_timer
@@ -131,12 +106,12 @@ def lesson_mode(notes):
     
     if chord:
         for note in notes:
-            set_note_on(note)
-        result = check_target_notes_within_interval()
+            led.setRecentlyOn(led.note_to_led_index[note])
+        result = led.check_target_notes_within_interval(target_notes=target_notes, time_interval=1)
         if result:
             finish_mode_cleanup(1)
         else:
-            print("Failed: ", recently_on)
+            print("Wrong: ", notes)
     else:
         print("TARGET ", target_notes)
         print("RECORDED ", played_notes)
@@ -179,6 +154,7 @@ def test_mode(notes):
             for note in notes:
                 if not led.testModeCheckDup(note):
                     played_notes.append(note)
+                    led.setRecentlyOn(led.note_to_led_index[note])
                     if note not in target_notes:
                         print("Wrong!")
                         led.multiColor([led.note_to_led_index[note]], color=Color(255,0,0))
@@ -203,6 +179,7 @@ def test_mode(notes):
             for note in notes:
                 if not led.testModeCheckDup(note):
                     played_notes.append(note)
+                    led.setRecentlyOn(led.note_to_led_index[note])
                     if note not in target_notes:
                         print("Wrong!")
                         led.multiColor([led.note_to_led_index[note]], color=Color(255,0,0))
