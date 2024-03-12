@@ -70,7 +70,7 @@ def divide_buffer_into_non_overlapping_chunks(buffer, max_len):
 def getFFT(data, rate):
     # Returns fft_freq and fft, fft_res_len.
     len_data = len(data)
-    data = data * np.hamming(len_data)
+    data = data * np.hanning(len_data)
     fft = np.fft.rfft(data)
     fft = np.abs(fft)
     ret_len_FFT = len(fft)
@@ -83,6 +83,7 @@ def remove_dc_offset(fft_res):
     fft_res[0] = 0.0
     fft_res[1] = 0.0
     fft_res[2] = 0.0
+    fft_res[3] = 0.0
     return fft_res
 
 def freq_for_note(base_note, note_index):
@@ -230,7 +231,7 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
     return freqs_out_tmp
 
 def note_threshold_scaled_by_RMS(buffer_rms):
-    note_threshold = 1000.0 * (4 / 0.090) * buffer_rms / 2
+    note_threshold = 8000.0 * (4 / 0.090) * buffer_rms / 2
     return note_threshold
 
 def normalize(arr):
@@ -313,10 +314,10 @@ while True:
 
 
         #librosa pitch
-        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
+        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hann')))
         # print("max_noise:" +  str(max_noise))
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -70).all(1)
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hann')), ref=np.max)
+        mask = (oldD[:, -10:-1] > -22).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
         newD[mask] = oldD[mask]
@@ -410,11 +411,14 @@ while True:
                 both_notes.append(nl)
         
         #remove duplicates
-        # print("librosa: ", notes_librosa)
-        # print("hps: ", notes_hps)
+        #print("librosa: ", notes_librosa)
+        #print("hps: ", notes_hps)
         both_notes = list(set(both_notes))
         both_notes_string = " ".join(both_notes)
-        # print("Both notes string: " + both_notes_string)
+        #if both_notes_string != "":
+            #print("Librosa: " + l)
+            #print("HPS: " + notes_hps_string)
+            #print("Combined:" + both_notes_string)  
     
 
         try:
