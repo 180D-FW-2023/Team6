@@ -163,17 +163,23 @@ def test_mode(notes):
                         led.multiColor([led.note_to_led_index[note]], color=Color(0,255,0))
             return
         
+        if set(played_notes) == set(target_notes) and len(played_notes) == len(target_notes):
+            print('PASSED')
+            indices = [led.note_to_led_index[note] for note in played_notes]
+            led.multiColor(indices, color=Color(0,255,0))
+            result = ' '.join(sorted(played_notes))
+            print(result)
+            client.publish('team6/test/results', result, qos=1)
+            finish_mode_cleanup(1)
+        
         if check_time_elapsed():
             # Check if the correct notes are played
-            if set(played_notes) == set(target_notes) and len(played_notes) == len(target_notes):
-                # If correct notes are played, end the test
-                result = ' '.join(sorted(played_notes))
-                client.publish('team6/test/results', result, qos=1)
-                finish_mode_cleanup(1.5)
-            else:
-                result = ' '.join(sorted(played_notes))
-                client.publish('team6/test/results', result, qos=1)
-                finish_mode_cleanup(1.5)
+            print('Time elapsed, FAILED')
+            indices = [led.note_to_led_index[note] for note in played_notes]
+            led.multiColor(indices, color=Color(255,0,0))
+            result = ' '.join(sorted(played_notes))
+            client.publish('team6/test/results', result, qos=1)
+            finish_mode_cleanup(1)
         else:
             # If timer hasn't elapsed, keep adding notes
             for note in notes:
@@ -225,6 +231,9 @@ try:
     while True:
         if mode == 0:
             led.turnOffExpired(on_time = 0.2)
+        
+        if chord and mode == 2 and test_timer and check_time_elapsed():
+            test_mode([])
 
         l = ""
         try:
