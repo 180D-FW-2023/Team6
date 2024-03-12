@@ -114,10 +114,10 @@ def check_target_notes_within_interval(time_interval=0.5):
     # If there are more than 3 notes or the notes don't match the target notes
     return False
 
-def finish_mode_cleanup():
+def finish_mode_cleanup(delay=0.5):
     global mode, played_notes, target_notes, test_timer
     print("Finished ", 'test' if mode == 2 else 'lesson', " mode!")
-    time.sleep(0.5)
+    time.sleep(delay)
     mode = 0
     led.start_sequence()
     played_notes = []
@@ -133,7 +133,7 @@ def lesson_mode(notes):
             set_note_on(note)
         result = check_target_notes_within_interval()
         if result:
-            finish_mode_cleanup()
+            finish_mode_cleanup(1)
         else:
             print("Failed: ", recently_on)
     else:
@@ -192,11 +192,11 @@ def test_mode(notes):
                 # If correct notes are played, end the test
                 result = ' '.join(sorted(played_notes))
                 client.publish('team6/test/results', result, qos=1)
-                finish_mode_cleanup()
+                finish_mode_cleanup(1.5)
             else:
                 result = ' '.join(sorted(played_notes))
                 client.publish('team6/test/results', result, qos=1)
-                finish_mode_cleanup()
+                finish_mode_cleanup(1.5)
         else:
             # If timer hasn't elapsed, keep adding notes
             for note in notes:
