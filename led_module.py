@@ -34,6 +34,34 @@ note_to_led_index.update({
     'A♯2': 28
 })
 
+index_to_note = {
+    6: 'G♯4',
+    7: 'G4',
+    8: 'F♯4',
+    9: 'F4',
+    10: 'E4',
+    11: 'D♯4',
+    12: 'D4',
+    13: 'C♯4',
+    14: 'C4',
+    15: 'B3',
+    16: 'A♯3',
+    17: 'A3',
+    18: 'G♯3',
+    19: 'G3',
+    20: 'F♯3',
+    21: 'F3',
+    22: 'E3',
+    23: 'D♯3',
+    24: 'D3',
+    25: 'C♯3',
+    26: 'C3',
+    27: 'B2',
+    28: 'A♯2',
+    29: 'A2'
+}
+
+
 def start_sequence():
     rainbow(wait_ms=20, iterations=1)
     colorWipeAll(wait_ms=50)
@@ -115,8 +143,9 @@ def check_target_notes_within_interval(target_notes, time_interval=1):
     # Check if there are exactly 3 target notes within the interval
     if len(valid_notes) == 3:
         print("Here are the valid notes: ", valid_notes)
-        played_notes = {note for note, _ in valid_notes}
+        played_notes = {index_to_note[note] for note, _ in valid_notes}
         if sorted(played_notes) == sorted(target_notes) and len(played_notes) == len(target_notes):
+            print("target notes: ", target_notes)
             print("Correct notes played: ", played_notes)
             return True
 
