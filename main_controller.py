@@ -180,7 +180,7 @@ def test_mode(notes):
                     played_notes.append(note)
                     if note not in target_notes:
                         print("Wrong!")
-                        led.multiColor([led.note_to_led_index[note], color=Color(255,0,0))
+                        led.multiColor([led.note_to_led_index[note]], color=Color(255,0,0))
                     else:
                         print("Right!")
                         led.multiColor([led.note_to_led_index[note]], color=Color(0,255,0))
@@ -204,7 +204,7 @@ def test_mode(notes):
                     played_notes.append(note)
                     if note not in target_notes:
                         print("Wrong!")
-                        led.multiColor([led.note_to_led_index[note], color=Color(255,0,0))
+                        led.multiColor([led.note_to_led_index[note]], color=Color(255,0,0))
                     else:
                         print("Right!")
                         led.multiColor([led.note_to_led_index[note]], color=Color(0,255,0))
