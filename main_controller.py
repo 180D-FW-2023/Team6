@@ -119,7 +119,7 @@ def lesson_mode(notes):
         led.multiColor(correct_indices, color=GREEN)
         led.multiColor(wrong_indices, color=RED)
         
-        valid_notes = led.get_notes_within_interval(time_interval=1)
+        valid_notes = led.getNotesWithinInterval(time_interval=1)
         if len(valid_notes) == len(target_notes) and set(valid_notes) == set(target_notes):
             finish_mode_cleanup(1)
         else:
@@ -149,10 +149,6 @@ def lesson_mode(notes):
 
 test_timer = None
 
-def start_test_timer():
-    global test_timer
-    test_timer = datetime.now()
-
 def check_time_elapsed(elapsed_seconds=2):
     global test_timer
     if test_timer and (datetime.now() - test_timer).total_seconds() > elapsed_seconds:
@@ -163,53 +159,36 @@ def test_mode(notes):
     global mode, target_notes, played_notes, chord, test_timer
     
     if chord:
-        # # Check for the first note and start the timer
-        # if not test_timer:
-        #     # Assuming the first note in the list is the start
-        #     start_test_timer()
-        #     for note in notes:
-        #         if not led.testModeCheckDup(note):
-        #             played_notes.append(note)
-        #             led.setRecentlyOn(led.note_to_led_index[note])
-        #             if note not in target_notes:
-        #                 print("Wrong!")
-        #                 led.multiColor([led.note_to_led_index[note]], color=RED)
-        #             else:
-        #                 print("Right!")
-        #                 led.multiColor([led.note_to_led_index[note]], color=GREEN)
-        #     return
+        if not test_timer:
+            test_timer = datetime.now()
         
-        # if set(played_notes) == set(target_notes) and len(played_notes) == len(target_notes):
-        #     print('PASSED')
-        #     indices = [led.note_to_led_index[note] for note in played_notes]
-        #     led.multiColor(indices, color=GREEN)
-        #     result = ' '.join(sorted(played_notes))
-        #     print(result)
-        #     client.publish('team6/test/results', result, qos=1)
-        #     finish_mode_cleanup(1)
+        for note in notes:
+            if not led.testModeCheckDup(note):
+                if note not in target_notes:
+                    print("Wrong note:", note)
+                    led.multiColor([led.note_to_led_index[note]], color=RED)
+                else:
+                    print("Right note:", note)
+                    led.multiColor([led.note_to_led_index[note]], color=GREEN)
         
-        # if check_time_elapsed():
-        #     # Check if the correct notes are played
-        #     print('Time elapsed, FAILED')
-        #     indices = [led.note_to_led_index[note] for note in played_notes]
-        #     led.multiColor(indices, color=RED)
-        #     result = ' '.join(sorted(played_notes))
-        #     client.publish('team6/test/results', result, qos=1)
-        #     finish_mode_cleanup(1)
-        # else:
-        #     # If timer hasn't elapsed, keep adding notes
-        #     for note in notes:
-        #         if not led.testModeCheckDup(note):
-        #             played_notes.append(note)
-        #             led.setRecentlyOn(led.note_to_led_index[note])
-        #             if note not in target_notes:
-        #                 print("Wrong!")
-        #                 led.multiColor([led.note_to_led_index[note]], color=RED)
-        #             else:
-        #                 print("Right!")
-        #                 led.multiColor([led.note_to_led_index[note]], color=GREEN)
+        played_notes = led.getNotesWithinInterval(time_interval=2)
         
-        pass
+        if set(played_notes) == set(target_notes) and len(played_notes) == len(target_notes):
+            print('PASSED')
+            result = ' '.join(played_notes)
+            print(result)
+            client.publish('team6/test/results', result, qos=1)
+            finish_mode_cleanup(1.5)
+            return
+        
+        
+        if any(note not in target_notes for note in played_notes) or check_time_elapsed():
+            print('FAILED')
+            result = ' '.join(played_notes)
+            print(result)
+            client.publish('team6/test/results', result, qos=1)
+            finish_mode_cleanup(1.5)
+            return
     
     else:
         print("TARGET ", target_notes)

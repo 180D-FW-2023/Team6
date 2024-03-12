@@ -141,7 +141,7 @@ def resetExpired(on_time=0.25, off_color=Color(0,0,0), indices = None):
                 strip.setPixelColor(key-offset, off_color)
     strip.show()
     
-def get_notes_within_interval(time_interval=1):
+def getNotesWithinInterval(time_interval=1):
     global recently_on
     now = datetime.now()
 
