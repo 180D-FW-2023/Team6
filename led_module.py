@@ -64,7 +64,7 @@ index_to_note = {
 
 def start_sequence():
     rainbow(wait_ms=20, iterations=1)
-    colorWipeAll(wait_ms=50)
+    colorWipeAll(wait_ms=10)
 
 def wheel(pos):
     """Generate rainbow colors across 0-255 positions."""

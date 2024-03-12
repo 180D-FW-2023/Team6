@@ -45,9 +45,9 @@ def on_disconnect(client, userdata, rc):
 def on_message(client, userdata, message):
     global target_notes, played_notes, mode, chord
     
-    led.colorWipeAll(Color(128,0,0), wait_ms=50)
-    led.colorWipeAll(Color(0,128,0), wait_ms=50)
-    led.colorWipeAll(Color(0,0,128), wait_ms=50)
+    led.colorWipeAll(BLUE, wait_ms=25)
+    led.colorWipeAll(GREEN, wait_ms=25)
+    led.colorWipeAll(RED, wait_ms=25)
     led.colorWipeAll(wait_ms=50)
     
     topic = str(message.topic)
