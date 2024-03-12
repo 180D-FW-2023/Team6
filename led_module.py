@@ -102,9 +102,10 @@ def showOneColorOnly(index, color=Color(128, 128, 128), wait_ms=50):
         strip.setPixelColor(index-offset, color)
     strip.show()
     
-def setColorByIndex(index, color=(0,128,0)):
-    if not (index < offset or index >= LED_COUNT+offset):
-        strip.setPixelColor(index-offset, color)
+def setColorByIndex(indices, color=(0,128,0)):
+    for index in indices:
+        if not (index < offset or index >= LED_COUNT+offset):
+            strip.setPixelColor(index-offset, color)
     strip.show()
 
 def multiColor(indices, color = Color(128, 128, 128)):
@@ -118,15 +119,20 @@ def multiColor(indices, color = Color(128, 128, 128)):
     
     strip.show()
             
-def turnOffExpired(on_time=0.25):
+def turnOffExpired(on_time=0.25, off_color=Color(0,0,0), indices = None):
     now = datetime.now()
-    off_color = Color(0,0,0)
     
-    for key, timestamp in recently_on.items():
-        if timestamp and now - timestamp > timedelta(seconds=on_time):     # if the LED has been on for more than 0.5 seconds
-            recently_on[key] = None
-            strip.setPixelColor(key-offset, off_color)
-    
+    if indices:
+        for index in indices:
+            if recently_on[index] and now - recently_on[index] > timedelta(seconds=on_time):
+                recently_on[index] = None
+                strip.setPixelColor(index-offset, off_color)
+    else:
+        # If indices not specified, turn off all expired notes
+        for key, timestamp in recently_on.items():
+            if timestamp and now - timestamp > timedelta(seconds=on_time):
+                recently_on[key] = None
+                strip.setPixelColor(key-offset, off_color)
     strip.show()
     
 def setRecentlyOn(index):
