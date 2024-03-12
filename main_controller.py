@@ -45,11 +45,12 @@ def on_message(client, userdata, message):
     led.colorWipeAll(wait_ms=50)
     
     topic = str(message.topic)
-    scale = str(message.payload.decode("utf-8","ignore"))
-    print('Received message: "' + str(message.payload) + '" on topic "' +
+    msg = str(message.payload.decode("utf-8","ignore"))
+    msg = msg.replace('#', '♯')
+    print('Received message: "' + msg + '" on topic "' +
             message.topic + '" with QoS ' + str(message.qos))
     
-    target_notes = scale.split()
+    target_notes = msg.split()
     played_notes = []
     chord = len(target_notes) == 3
     print(target_notes)
@@ -142,11 +143,11 @@ def lesson_mode(notes):
         
         top_note = notes[0]
         if top_note == target_notes[len(played_notes)]:
-            print("Correct!")
+            print("Correct!", top_note)
             led.setColorByIndex(led.note_to_led_index[target_notes[len(played_notes)]], color=Color(0,128,0))
             played_notes.append(top_note)
         else:
-            print("Wrong!")
+            print("Wrong!", top_note)
         
         if len(played_notes) == len(target_notes):
             finish_mode_cleanup()
