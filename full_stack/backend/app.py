@@ -14,6 +14,8 @@ import subprocess
 import string
 import signal
 import sys
+import inspect
+import logging
 
 
 from pymongo.mongo_client import MongoClient
@@ -43,7 +45,7 @@ app.config['MQTT_KEEPALIVE'] = 5  # Set KeepAlive time in seconds
 app.config['MQTT_TLS_ENABLED'] = False  # Set True if your broker supports TLS
 lesson_topic = 'team6/lessons/results'
 testing_topic = 'team6/test/results'
-last_sent_test_msg = None
+last_sent_test_msg = "Last Sent Test Message Initialized"
 script_process = None
 
 scales = {

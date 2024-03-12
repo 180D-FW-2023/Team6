@@ -65,7 +65,10 @@
         <v-row>
           <v-col cols="12" sm="6" md="5">
             <v-responsive :aspect-ratio="1">
+              <v-card>
+                Bad posture detected!
               <img src="http://localhost:5000//uploads/image.jpg" class="responsive-image">
+            </v-card>
             </v-responsive>
           </v-col>
           <v-col cols="12" sm="6" md="5">
