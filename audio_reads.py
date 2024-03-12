@@ -414,7 +414,7 @@ while True:
         # print("hps: ", notes_hps)
         both_notes = list(set(both_notes))
         both_notes_string = " ".join(both_notes)
-        print("Both notes string: " + both_notes_string)
+        # print("Both notes string: " + both_notes_string)
     
 
         try:
