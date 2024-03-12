@@ -14,7 +14,7 @@ LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
 ################ LED CODE #####################
 
-recently_on = {i:None for i in range(87)}
+recently_on = {i:None for i in range(30)}
 offset = 0
 
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
@@ -110,7 +110,7 @@ def check_target_notes_within_interval(target_notes, time_interval=1):
     now = datetime.now()
 
     # Filter out notes not within the TIME_INTERVAL
-    valid_notes = [(note, timing) for note, timing in recently_on if now - timing <= timedelta(seconds=time_interval)]
+    valid_notes = [(note, timing) for note, timing in recently_on.items() if now - timing <= timedelta(seconds=time_interval)]
 
     # Check if there are exactly 3 target notes within the interval
     if len(valid_notes) == 3:
