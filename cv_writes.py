@@ -591,12 +591,14 @@ while reattempt < MAX_ATTEMPTS:
                 ref_img = True
 
                 # TODO: CHECK THRESHOLD/SET THE CORRECT ONES
-                black_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
-                                        -0.5, -0.4]
-                black_error_bounds = [1.8 for _ in range(len(black_error_bounds))]
-                white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
-                                        -0.5, -0.4]
-                white_error_bounds = [1.6 for _ in range(len(white_error_bounds))]
+                # black_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
+                #                         -0.5, -0.4]
+                black_error_bounds = [1.8 for _ in range(16)]
+                # white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
+                #                         -0.5, -0.4]
+                white_error_bounds = [1.6 for _ in range(16)]
+                white_error_bounds[6] = 2.0
+                white_error_bounds[7] = 2.0
                 white_error_bounds[9:] = [1.2 for _ in range(len(white_error_bounds)-9)]
                 # white_error_bounds[-1] = 0.85
 
