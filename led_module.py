@@ -110,7 +110,7 @@ def check_target_notes_within_interval(target_notes, time_interval=1):
     now = datetime.now()
 
     # Filter out notes not within the TIME_INTERVAL
-    valid_notes = [(note, timing) for note, timing in recently_on.items() if now - timing <= timedelta(seconds=time_interval)]
+    valid_notes = [(note, timing) for note, timing in recently_on.items() if timing is not None and now - timing <= timedelta(seconds=time_interval)]
 
     # Check if there are exactly 3 target notes within the interval
     if len(valid_notes) == 3:
