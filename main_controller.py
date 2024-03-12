@@ -178,27 +178,36 @@ def test_mode(notes):
             for note in notes:
                 if not led.testModeCheckDup(note):
                     played_notes.append(note)
+                    if note not in target_notes:
+                        print("Wrong!")
+                        led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(255,0,0))
+                    else:
+                        print("Right!")
+                        led.multiColor([led.note_to_led_index[note]], color=Color(0,255,0))
             return
         
-        # If the timer has started, check for note timing
-        for note in notes:
-            if not led.testModeCheckDup(note):
-                played_notes.append(note)
-        
-        # Check if the correct notes are played
-        if set(played_notes) == set(target_notes) and len(played_notes) == len(target_notes):
-            # If correct notes are played, end the test
-            result = ' '.join(sorted(played_notes))
-            client.publish('team6/test/results', result, qos=1)
-            finish_mode_cleanup()
-        elif check_time_elapsed():
-            # If time interval has passed, end the test with current played notes
-            result = ' '.join(sorted(played_notes))
-            client.publish('team6/test/results', result, qos=1)
-            finish_mode_cleanup()
+        if check_time_elapsed():
+            # Check if the correct notes are played
+            if set(played_notes) == set(target_notes) and len(played_notes) == len(target_notes):
+                # If correct notes are played, end the test
+                result = ' '.join(sorted(played_notes))
+                client.publish('team6/test/results', result, qos=1)
+                finish_mode_cleanup()
+            else:
+                result = ' '.join(sorted(played_notes))
+                client.publish('team6/test/results', result, qos=1)
+                finish_mode_cleanup()
         else:
-            # Test is still ongoing
-            pass
+            # If timer hasn't elapsed, keep adding notes
+            for note in notes:
+                if not led.testModeCheckDup(note):
+                    played_notes.append(note)
+                    if note not in target_notes:
+                        print("Wrong!")
+                        led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(255,0,0))
+                    else:
+                        print("Right!")
+                        led.multiColor([led.note_to_led_index[note]], color=Color(0,255,0))
     
     else:
         print("TARGET ", target_notes)
@@ -212,10 +221,10 @@ def test_mode(notes):
         
         if top_note == target_notes[len(played_notes)]:
             print("Correct!")
-            led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(0,128,0))
+            led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(0,255,0))
         else:
             print("Wrong!")
-            led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(128,0,0))
+            led.multiColor([led.note_to_led_index[target_notes[len(played_notes)]]], color=Color(255,0,0))
         
         played_notes.append(top_note)
         
@@ -236,6 +245,9 @@ subscriber.bind("tcp://*:5556")
 
 try:
     while True:
+        if mode == 0:
+            led.turnOffExpired(on_time = 0.2)
+
         l = ""
         try:
             l = subscriber.recv_string(zmq.NOBLOCK)  # Non-blocking receive
@@ -263,7 +275,6 @@ try:
                     # default note playing - shows white light
                     print("----- Default mode -----")
                     # led.showOneColorOnly(led.note_to_led_index[top_note], color=Color(128,128,128),wait_ms=200)
-                    led.turnOffExpired(on_time = 0.2)
                     indices = [led.note_to_led_index[note] for note in notes]
                     led.multiColor(indices, color=Color(128,128,128))
 
