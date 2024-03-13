@@ -107,7 +107,7 @@ def find_pressed_keys(ref_lt_distances, ref_rt_distances, inf_lt_distances, inf_
         for i in range(len(displacements)):
             if displacements[i] > displacement_threshold[i]:
                 key_pressed.append(i)
-                # print(displacements)
+                print(displacements)
 
     return key_pressed
 
@@ -582,7 +582,7 @@ while reattempt < MAX_ATTEMPTS:
                 ref_rt_left_corner, ref_rt_right_corner = get_lower_corners(right_tag)
 
                 # Tag Detection
-                mask_bound = (0, frame_img.shape[0]//2, frame_img.shape[1], frame_img.shape[0])
+                mask_bound = (0, 0, frame_img.shape[1], frame_img.shape[0])
                 roi, distances_lt_1, distances_rt_1, distances_lt_2, distances_rt_2 = reference_frame(frame_img, mask_bound,
                                                                                                         HSV_color_1,
                                                                                                         HSV_color_2,
@@ -597,10 +597,10 @@ while reattempt < MAX_ATTEMPTS:
                 # white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
                 #                         -0.5, -0.4]
                 white_error_bounds = [1.6 for _ in range(16)]
-                white_error_bounds[6] = 1.8
-                white_error_bounds[7] = 1.8
+                # white_error_bounds[6] = 1.7
+                # white_error_bounds[7] = 1.8
                 white_error_bounds[9:] = [1.2 for _ in range(len(white_error_bounds)-9)]
-                white_error_bounds[10] = 2.0
+                white_error_bounds[10] = 2.2
 
                 print("Reference frame captured")
 

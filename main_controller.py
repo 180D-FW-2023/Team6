@@ -99,6 +99,8 @@ led.start_sequence()
 def finish_mode_cleanup(delay=0.5):
     global mode, played_notes, target_notes, test_timer, chord
     print("Finished ", 'test' if mode == 2 else 'lesson', " mode!")
+    for i in led.recently_on.keys():
+        led.recently_on[i] = None
     played_notes = []
     target_notes = []
     mode = 0
@@ -112,14 +114,13 @@ def lesson_mode(notes):
     global mode, target_notes, played_notes, chord
     
     if chord:
-        # for note in notes:
-        #     led.setRecentlyOn(led.note_to_led_index[note])
         correct_indices = [led.note_to_led_index[note] for note in notes if note in target_notes]
         wrong_indices = [led.note_to_led_index[note] for note in notes if note not in target_notes]
         led.multiColor(correct_indices, color=GREEN)
         led.multiColor(wrong_indices, color=RED)
         
         valid_notes = led.getNotesWithinInterval(time_interval=1)
+        print(valid_notes)
         if len(valid_notes) == len(target_notes) and set(valid_notes) == set(target_notes):
             finish_mode_cleanup(1)
         else:
@@ -131,12 +132,20 @@ def lesson_mode(notes):
         print("RECORDED ", played_notes)
         
         top_note = notes[0]
+        # if not led.testModeCheckDup(led.note_to_led_index[top_note]):
+        #     if top_note == target_notes[len(played_notes)]:
+        #         print("Correct Note:", top_note)
+        #         led.setColorByIndices([led.note_to_led_index[top_note]], color=GREEN)
+        #         played_notes.append(top_note)
+        #     else:
+        #         led.multiColor([led.note_to_led_index[top_note]], color=RED)
+        #         print("Wrong Note:", top_note)
         if top_note == target_notes[len(played_notes)]:
             print("Correct Note:", top_note)
             led.setColorByIndices([led.note_to_led_index[top_note]], color=GREEN)
             played_notes.append(top_note)
         else:
-            led.multiColor([led.note_to_led_index[top_note]], color=RED)
+            # led.setColorByIndices([led.note_to_led_index[top_note]], color=RED)
             print("Wrong Note:", top_note)
         
         if len(played_notes) == len(target_notes):
@@ -163,7 +172,7 @@ def test_mode(notes):
             test_timer = datetime.now()
         
         for note in notes:
-            if not led.testModeCheckDup(note):
+            if not led.testModeCheckDup(led.note_to_led_index[note]):
                 if note not in target_notes:
                     print("Wrong note:", note)
                     led.multiColor([led.note_to_led_index[note]], color=RED)
@@ -172,10 +181,12 @@ def test_mode(notes):
                     led.multiColor([led.note_to_led_index[note]], color=GREEN)
         
         played_notes = led.getNotesWithinInterval(time_interval=2)
+        print(played_notes)
         
         if set(played_notes) == set(target_notes) and len(played_notes) == len(target_notes):
             print('PASSED')
             result = ' '.join(played_notes)
+            result = result.replace('♯','#')
             print(result)
             client.publish('team6/test/results', result, qos=1)
             finish_mode_cleanup(1.5)
@@ -185,6 +196,7 @@ def test_mode(notes):
         if any(note not in target_notes for note in played_notes) or check_time_elapsed():
             print('FAILED')
             result = ' '.join(played_notes)
+            result = result.replace('♯','#')
             print(result)
             client.publish('team6/test/results', result, qos=1)
             finish_mode_cleanup(1.5)
@@ -210,9 +222,8 @@ def test_mode(notes):
         played_notes.append(top_note)
         
         if len(played_notes) == len(target_notes):
-            result = ''
-            for i in played_notes:
-                result += i + ' '
+            result = ' '.join(played_notes)
+            result = result.replace('♯','#')
             print(result)
             client.publish('team6/test/results', result, qos=1)
             finish_mode_cleanup()
@@ -229,8 +240,9 @@ try:
         if mode == 0:       # default mode
             led.resetExpired(on_time = 0.4)
             
-        if mode == 1:       # lesson mode
-            led.resetExpired(on_time = 1, off_color=GREEN, indices = [led.note_to_led_index[note] for note in played_notes])      # first reset correctly played notes back to green, which sets its timestamp to None
+        if mode == 1 and chord:       # lesson mode
+            print("CHORD TARGET NOTE", target_notes)
+            print(led.getNotesWithinInterval(time_interval=1))
             led.resetExpired(on_time = 1, off_color=BLUE, indices = [led.note_to_led_index[note] for note in target_notes])      # reset target notes back to blue
             led.resetExpired(on_time = 1, off_color=BLACK)      # turn off all other notes
         
@@ -248,6 +260,10 @@ try:
             continue
         
         notes = [note.strip().upper() for note in l.split()]
+        
+        if any(note not in led.note_to_led_index for note in notes):
+            print('KEY IS OUT OF RANGE')
+            continue
 
         if notes:
             

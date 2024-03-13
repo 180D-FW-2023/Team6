@@ -146,7 +146,7 @@ def getNotesWithinInterval(time_interval=1):
     now = datetime.now()
 
     # Filter out notes not within the TIME_INTERVAL
-    valid_notes = [note for note, timing in recently_on.items() if timing is not None and now - timing <= timedelta(seconds=time_interval)]
+    valid_notes = [index_to_note[note] for note, timing in recently_on.items() if timing is not None and now - timing <= timedelta(seconds=time_interval)]
 
     return valid_notes
     

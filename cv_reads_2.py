@@ -115,7 +115,7 @@ def find_pressed_keys(ref_lt_distances, ref_rt_distances, inf_lt_distances, inf_
         for i in range(len(displacements)):
             if displacements[i] > displacement_threshold[i]:
                 key_pressed.append(i)
-                # print(displacements)
+                print(displacements)
 
     return key_pressed
 
@@ -543,12 +543,12 @@ reattempt = 0
 
 while reattempt < MAX_ATTEMPTS:
     try:
-        cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        cap = cv2.VideoCapture("/dev/video0")
         ref_img = False
         count = 0
         CAPTURE_COUNT = 50
         prev_notes = []
-        FRAME_SKIP = 5
+        FRAME_SKIP = 4
         frame_counter = 0
 
         while cap.isOpened():
@@ -612,14 +612,14 @@ while reattempt < MAX_ATTEMPTS:
                 # TODO: CHECK THRESHOLD/SET THE CORRECT ONES
                 # black_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
                 #                         -0.5, -0.4]
-                black_error_bounds = [1.7 for _ in range(16)]
+                black_error_bounds = [2.5 for _ in range(16)]
                 # white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
                 #                         -0.5, -0.4]
-                white_error_bounds = [1.6 for _ in range(16)]
-                white_error_bounds[6] = 1.8
-                white_error_bounds[7] = 1.8
-                white_error_bounds[9:] = [1.2 for _ in range(len(white_error_bounds)-9)]
-                white_error_bounds[10] = 2.0
+                white_error_bounds = [2.5 for _ in range(16)]
+                # white_error_bounds[6] = 1.7
+                # white_error_bounds[7] = 1.8
+                # white_error_bounds[9:] = [1.2 for _ in range(len(white_error_bounds)-9)]
+                # white_error_bounds[10] = 2.2
 
                 print("Reference frame captured")
 
@@ -654,7 +654,7 @@ while reattempt < MAX_ATTEMPTS:
 
 
                     if all_notes:
-                        # print(all_notes)
+                        print(all_notes)
                         cv_set = set(all_notes)
                         correct_notes = set()
 
