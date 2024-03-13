@@ -19,10 +19,9 @@ import math
 TWELVE_ROOT_OF_2 = math.pow(2, 1.0 / 12)
 # initialise pyaudio
 p = pyaudio.PyAudio()
-import matplotlib.pyplot as plt
 
-FFT_SIZE = 6144
-SAMPLE_RATE = 44100
+FFT_SIZE = 4096
+SAMPLE_RATE = 22050
 # open stream
 buffer_size = FFT_SIZE
 pyaudio_format = pyaudio.paFloat32
@@ -49,11 +48,11 @@ else:
 tolerance = 0.8
 win_s = FFT_SIZE # fft size
 hop_s = buffer_size # hop size
-#pitch_o = aubio.pitch("default", win_s, hop_s, samplerate)
-#pitch_o.set_unit("midi")
-#pitch_o.set_tolerance(tolerance)
-#o = aubio.onset("specflux", win_s, hop_s, samplerate)
-#onsets = []
+pitch_o = aubio.pitch("default", win_s, hop_s, samplerate)
+pitch_o.set_unit("midi")
+pitch_o.set_tolerance(tolerance)
+o = aubio.onset("default", win_s, hop_s, samplerate)
+onsets = []
 max_buffer = [0]
 buf_const = 2
 fft_len = FFT_SIZE
@@ -84,7 +83,6 @@ def remove_dc_offset(fft_res):
     fft_res[0] = 0.0
     fft_res[1] = 0.0
     fft_res[2] = 0.0
-    #fft_res[3] = 0.0
     return fft_res
 
 def freq_for_note(base_note, note_index):
@@ -175,7 +173,7 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
 
     # initialize
     iOrder = 4
-    f_min = 65.41   # C2     300
+    f_min = 65.41   # C2      300
     # f = np.zeros(X.shape[1])
     f = np.zeros(len(X))
 
@@ -212,23 +210,17 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
     
     ## Uncomment to print the values: buffer_RMS, max_value, min_value
     ## and note_threshold.    
-    '''
-    print(" buffer_rms: " + to_str_f4(buffer_rms) )
-    print(" max_value : " + to_str_f(max_value) + "  max_index : " + to_str_f(max_index) )
-    print(" note_threshold : " + to_str_f(note_threshold) )
-    '''
-
+    #print(" buffer_rms: " + to_str_f4(buffer_rms) )
+    #print(" max_value : " + to_str_f(max_value) + "  max_index : " + to_str_f(max_index) )
+    #print(" note_threshold : " + to_str_f(note_threshold) )
 
     ## Uncomment to show the graph of the result of the 
     ## Harmonic Product Spectrum. 
-    '''
-    fig, ax = plt.subplots()
-    yr_tmp = afHps[np.arange(k_min, afHps.shape[0])]
-    xr_tmp = (np.arange(k_min, afHps.shape[0]) + k_min) / (X.shape[0] - 1) * f_s / 2
-    ax.plot(xr_tmp, yr_tmp)
-    plt.show()
-    '''
-
+    #fig, ax = plt.subplots()
+    #yr_tmp = afHps[np.arange(k_min, afHps.shape[0])]
+    #xr_tmp = (np.arange(k_min, afHps.shape[0]) + k_min) / (X.shape[0] - 1) * f_s / 2
+    #ax.plot(xr_tmp, yr_tmp)
+    #plt.show()
 
     # Turns 2 level list into a one level list.
     freqs_out_tmp = []
@@ -238,7 +230,7 @@ def PitchSpectralHps(X, freq_buckets, f_s, buffer_rms):
     return freqs_out_tmp
 
 def note_threshold_scaled_by_RMS(buffer_rms):
-    note_threshold = 8000.0 * (4 / 0.090) * buffer_rms / 2
+    note_threshold = 1000.0 * (4 / 0.090) * buffer_rms / 2
     return note_threshold
 
 def normalize(arr):
@@ -258,19 +250,6 @@ def to_str_f4(value):
     return "{0:.4f}".format(value)
 
 ordered_note_freq = get_all_notes_freq()
-
-def replace_last_number_with_less(array):
-    new_array = []
-    for item in array:
-        last_char = item[-1]
-        if last_char.isdigit():
-            new_last_char = str(int(last_char) - 1)
-            new_item = item[:-1] + new_last_char
-            new_array.append(new_item)
-        else:
-            # If the last character is not a digit, simply append it as it is.
-            new_array.append(item)
-    return new_array
 
 print("*** starting recording")
 while True:
@@ -301,10 +280,10 @@ while True:
 
 
         #librosa pitch
-        max_noise = np.max(np.abs(librosa.stft(signal, n_fft=FFT_SIZE,  window = 'hann')))
-        #print("max_noise:" +  str(max_noise))
-        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, n_fft=FFT_SIZE, window = 'hann')), ref=np.max)
-        mask = (oldD[:, -10:-1] > -22).all(1)
+        max_noise = np.max(np.abs(librosa.stft(signal, window = 'hamming')))
+        print("max_noise:" +  str(max_noise))
+        oldD = librosa.amplitude_to_db(np.abs(librosa.stft(signal, window = 'hamming')), ref=np.max)
+        mask = (oldD[:, -10:-1] > -19).all(1)
         blank = -80
         newD = np.full_like(oldD, blank)
         newD[mask] = oldD[mask]
@@ -314,33 +293,23 @@ while True:
         #print(pitches[np.where(magnitudes>0)])
         #print(magnitudes[np.where(magnitudes>0)])
         pitches_final = pitches[np.asarray(magnitudes > 0.2).nonzero()]
-        #magnitudes_final = magnitudes[np.asarray(magnitudes > 0.07).nonzero()]
-        #print(pitches_final)
         if len(pitches_final) > 0:
             notes_librosa = librosa.hz_to_note(pitches_final)
             notes_librosa = list(OrderedDict.fromkeys(notes_librosa))
-            #magnitudes_librosa = magnitudes_final
         else:
             notes_librosa = []
-            #magnitudes_librosa = []
         #print(pitches_final)
         #print(notes)
+        l = " ".join(notes_librosa)
+        
         if max_noise < 40:
             l = ""
-            #m = ""
             notes_librosa = []
-        #notes_librosa2 = replace_last_number_with_less(notes_librosa)
-        l = " ".join(notes_librosa)
-        #m = " ".join(str(magnitudes_librosa))
-
-            #magnitudes_librosa = []
-        #if l != "":
-        #print("Librosa: " + l)
-            #print("Librosa magnitudes" + m)
-        
-
-        
-
+        print("Librosa: " + l)
+        if (max_noise > 3):
+            if o(signal):
+                print("%f" % o.get_last_s())
+                onsets.append(o.get_last())
         
         #HPS pitch
         buffer_chunks = divide_buffer_into_non_overlapping_chunks(signal, fft_len)
@@ -371,12 +340,9 @@ while True:
                 note_name = find_nearest_note(ordered_note_freq, freq[0])
                 #print("=> freq: " + to_str_f(freq[0]) + " Hz  value: " + to_str_f(freq[1]) + " note_name: " + note_name )
                 notes_hps.append(note_name)
-            notes_hps = list(OrderedDict.fromkeys(notes_hps))
-            if len(notes_hps) > 5:
-                notes_hps = notes_hps[0:5]
+
             notes_hps_string = " ".join(notes_hps)
-            #if notes_hps_string != "":
-            #print("HPS:" + notes_hps_string)
+            print("HPS:" + notes_hps_string)
 
 
 
@@ -404,35 +370,38 @@ while True:
             count += 1
 
         both_notes = []
-        
-        
-        #note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
-        note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("B3", "B4")]
+        note_pairs = [("C3", "C4"), ("C♯3", "C♯4"), ("D3", "D4"), ("D♯3", "D♯4"), ("E3", "E4"), ("F3", "F4"), ("F♯3", "F♯4"), ("G3", "G4"), ("G♯3", "G♯4"), ("A3", "A4"), ("A♯3", "A♯4"), ("B3", "B4")]
         for pair in note_pairs:
             letter1, letter2 = pair
             # Check if the extracted letters match and append if conditions are met
             if letter1 in notes_hps and letter2 in notes_librosa:
                 #print(pair)
                 both_notes.append(letter1)
-        
+        '''
+        if "C3" in notes_hps:
+            if "C♯3" not in notes_librosa:
+                both_notes.append("C3")
+        if "D#3" in notes_hps:
+            if "D♯4" in notes_librosa:
+                both_notes.append("D#3")
+        if "D3" in notes_hps:
+            if "D4" in notes_librosa:
+                both_notes.append("D3")
+        if "E3" in notes_hps:
+            if "E4" in notes_librosa:
+                both_notes.append("E3")
+        #if "D3" in notes_hps:
+            #both_notes.append("D3")
+        '''
+
         for nl in notes_librosa:
             if nl in notes_hps:
                 both_notes.append(nl)
-
-        #if (max_noise > 40):
-            #if o(signal):
-                #print("%f" % o.get_last_s())
-                #onsets.append(o.get_last())
-                #both_notes.clear()
-                #both_notes = []
         
         #remove duplicates
         both_notes = list(set(both_notes))
         both_notes_string = " ".join(both_notes)
-        if both_notes_string != "":
-            print("Librosa: " + l)
-            print("HPS: " + notes_hps_string)
-            print("Combined:" + both_notes_string)               
+        print("Combined:" + both_notes_string)               
             
 
 
