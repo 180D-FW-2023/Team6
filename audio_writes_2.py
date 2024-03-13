@@ -424,7 +424,7 @@ while True:
         if both_notes_string:    
             try:
                 socket.send_string(both_notes_string, zmq.NOBLOCK)
-                print(f"Sent: {both_notes_string}")
+                # print(f"Sent: {both_notes_string}")
             except zmq.Again:
                 print("Sending failed, socket not ready")
 

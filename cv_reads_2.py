@@ -115,7 +115,7 @@ def find_pressed_keys(ref_lt_distances, ref_rt_distances, inf_lt_distances, inf_
         for i in range(len(displacements)):
             if displacements[i] > displacement_threshold[i]:
                 key_pressed.append(i)
-                print(displacements)
+                # print(displacements)
 
     return key_pressed
 
@@ -654,7 +654,7 @@ while reattempt < MAX_ATTEMPTS:
 
 
                     if all_notes:
-                        print(all_notes)
+                        # print(all_notes)
                         cv_set = set(all_notes)
                         correct_notes = set()
 

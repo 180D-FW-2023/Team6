@@ -100,9 +100,7 @@ def setColorByIndices(indices, color=(0,128,0)):
 
 def multiColor(indices, color = Color(128, 128, 128)):
     now = datetime.now()
-    print("setting multicolor")
     for index in indices:
-        print('poop: ', index)
         if not (index < offset or index >= LED_COUNT+offset):
             strip.setPixelColor(index-offset, color)
             recently_on[index] = now
