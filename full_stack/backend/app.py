@@ -54,11 +54,11 @@ scales = {
   "E Major": "E3 F#3 G#3 A3 B3 C#4 D#4 E4",
   "F Major": "F3 G3 A3 A#3 C4 D4 E4 F4",
   "G Major": "G3 A3 B3 C4 D4 E4 F#4 G4",
-  "A Major": "A3 B3 C#4 D4 E4 F#4 G#4 A4",
-  "B Major": "B3 C#4 D#4 E4 F#4 G#4 A#4 B4",
+  "A Major": "A2 B2 C#3 D3 E3 F#3 G#3 A3",
+  "B Major": "B2 C#3 D#3 E3 F#3 G#3 A#3 B3",
 
-  "A Minor": "A3 B3 C4 D4 E4 F4 G4 A4",
-  "B Minor": "B3 C#4 D4 E4 F#4 G4 A4 B4",
+  "A Minor": "A2 B2 C3 D3 E3 F3 G3 A3",
+  "B Minor": "B2 C#3 D3 E3 F#3 G3 A3 B3",
   "C Minor": "C3 D3 D#3 F3 G3 G#3 A#3 C4",
   "D Minor": "D3 E3 F3 G3 A3 A#3 C4 D4",
   "E Minor": "E3 F#3 G3 A3 B3 C4 D4 E4",
@@ -83,6 +83,7 @@ chords = {
   "B Minor": "B3 D4 F#4",
 }
 
+
 mqtt_client = Mqtt(app)
 socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for all domains
 
@@ -104,7 +105,12 @@ def stop_script():
     else:
         print("No script is currently running.")
 
-    
+def delete_file_if_exists(file_path):
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f"File '{file_path}' has been deleted.")
+    else:
+        print(f"File '{file_path}' does not exist.")    
 
 def remove_numbers(text):
     # Create a translation table that maps digits to None
@@ -125,21 +131,37 @@ def process_test_result(payload):
     modality = words[1]
     correct_notes = []
     type = ""
+    matching_indices = []
     if 'Scale' in last_sent_test_msg:
         type = 'scales'
-        correct_notes = scales[dict_key].replace('*', '#').split()
+        correct_notes = scales[dict_key].replace('♯', '#').split()
+        payload_notes = payload.split()
+        matching_indices = [i for i, item in enumerate(correct_notes) if i < len(payload_notes) and item == payload_notes[i]]
     elif 'Chord' in last_sent_test_msg:
         type = 'chords'
-        correct_notes = chords[dict_key].replace('*', '#').split()
-    payload_notes = payload.split()
-    matching_indices = [i for i, item in enumerate(correct_notes) if i < len(payload_notes) and item == payload_notes[i]]
+        correct_notes = chords[dict_key].replace('♯', '#').split()
+        payload_notes = payload.split()
+        correct_notes_set = set(correct_notes)
+        matching_indices = [i for i, note in enumerate(payload_notes) if note in correct_notes_set]
+    
+    # matching_indices = [i for i, item in enumerate(correct_notes) if i < len(payload_notes) and item == payload_notes[i]]
     boolean_indices = [0] * len(payload.split())
     for i in range(len(boolean_indices)):
         if i in matching_indices:
             boolean_indices[i] = 1
-    score = (len(matching_indices) / len(correct_notes)) * 100
+
+    if len(payload.split()) > len(correct_notes):
+        score = max(((len(matching_indices) - (len(payload.split()) - len(correct_notes))) / len(correct_notes) * 100), 0)
+    else:
+        score = (len(matching_indices)) / len(correct_notes) * 100
+
     print("Score: ", score)
-    update_record_in_db(last_sent_test_msg[0], type, modality, remove_numbers(payload)[:-1], score, boolean_indices)
+    payload_to_upload = []
+    if 'Chord' in last_sent_test_msg:
+        payload_to_upload = remove_numbers(payload)
+    elif 'Scale' in last_sent_test_msg:
+        payload_to_upload = remove_numbers(payload)[:-1]
+    update_record_in_db(last_sent_test_msg[0], type, modality, payload_to_upload, score, boolean_indices)
     print(matching_indices)
     print(correct_notes)
     socketio.emit('update')

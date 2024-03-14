@@ -66,7 +66,7 @@ if __name__ == "__main__":
     pose = mp_pose.Pose()
 
 
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
     # cap = cv2.VideoCapture('C:\\Users\\17147\\Desktop\\College\\180DA\\sample1.mp4')
     # cap =  cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
             angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination)) + '  Arm: ' + str(int(arm_inclination))
 
             # Determine whether good posture or bad posture.
-            if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 60 and arm_inclination < 100:
+            if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 70 and arm_inclination < 90:
                 bad_posture_start_time = None
                 bad_posture_detected = False
                 cv2.putText(image, angle_text_string, (10, 30), font, 0.9, light_green, 2)
@@ -187,7 +187,7 @@ if __name__ == "__main__":
                         text_to_send = text_to_send + "Fix your neck position! "
                     if torso_inclination >= 10:
                         text_to_send = text_to_send + "Fix your torso position! "
-                    if arm_inclination <= 60 or arm_inclination >= 100:
+                    if arm_inclination <= 70 or arm_inclination >= 90:
                         text_to_send = text_to_send + "Fix your arm position! "
                     print(text_to_send)
                     response = requests.post('http://localhost:5000/upload_frame', files={'image': buffer.tobytes()},
@@ -254,7 +254,7 @@ if __name__ == "__main__":
             angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination)) + '  Armo: ' + str(int(arm_inclination))
 
             # Determine whether good posture or bad posture.
-            if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 60 and arm_inclination < 100:
+            if neck_inclination < 40 and torso_inclination < 10 and arm_inclination > 70 and arm_inclination < 90:
                 bad_posture_start_time = None
                 bad_posture_detected = False
                 cv2.putText(image, angle_text_string, (10, 30), font, 0.9, light_green, 2)
@@ -288,7 +288,7 @@ if __name__ == "__main__":
                         text_to_send = text_to_send + "Fix your neck position! "
                     if torso_inclination >= 10:
                         text_to_send = text_to_send + "Fix your torso position! "
-                    if arm_inclination <= 60 or arm_inclination >= 100:
+                    if arm_inclination <= 70 or arm_inclination >=90:
                         text_to_send = text_to_send + "Fix your arm position! "
                     print(text_to_send)
                     response = requests.post('http://localhost:5000/upload_frame', files={'image': buffer.tobytes()}, data = {

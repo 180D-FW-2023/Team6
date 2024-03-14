@@ -66,7 +66,7 @@
           <v-col cols="12" sm="6" md="5">
             <v-responsive :aspect-ratio="1">
               <v-card>
-                Bad posture detected!
+                Last bad posture detected: 
               <img src="http://localhost:5000//uploads/image.jpg" class="responsive-image">
             </v-card>
             </v-responsive>
@@ -157,25 +157,43 @@ const chartOptions = ref({
   }
 });
 const letters = ["A", "B", "C", "D", "E", "F", "G"];
+// const scales = {
+//   // Major Scales
+//   "C Major": "C3 D3 E3 F3 G3 A3 B3 C4",
+//   "D Major": "D3 E3 F#3 G3 A3 B3 C#4 D4",
+//   "E Major": "E3 F#3 G#3 A3 B3 C#4 D#4 E4",
+//   "F Major": "F3 G3 A3 A#3 C4 D4 E4 F4",
+//   "G Major": "G3 A3 B3 C4 D4 E4 F#4 G4",
+//   "A Major": "A3 B3 C#4 D4 E4 F#4 G#4 A4",
+//   "B Major": "B3 C#4 D#4 E4 F#4 G#4 A#4 B4",
+
+//   // Natural Minor Scales
+//   "A Minor": "A3 B3 C4 D4 E4 F4 G4 A4",
+//   "B Minor": "B3 C#4 D4 E4 F#4 G4 A4 B4",
+//   "C Minor": "C3 D3 D#3 F3 G3 G#3 A#3 C4",
+//   "D Minor": "D3 E3 F3 G3 A3 A#3 C4 D4",
+//   "E Minor": "E3 F#3 G3 A3 B3 C4 D4 E4",
+//   "F Minor": "F3 G3 G#3 A#3 C4 C#4 D#4 F4",
+//   "G Minor": "G3 A3 A#3 C4 D4 D#4 F4 G4",
+// };
+
 const scales = {
-  // Major Scales
   "C Major": "C3 D3 E3 F3 G3 A3 B3 C4",
   "D Major": "D3 E3 F#3 G3 A3 B3 C#4 D4",
   "E Major": "E3 F#3 G#3 A3 B3 C#4 D#4 E4",
   "F Major": "F3 G3 A3 A#3 C4 D4 E4 F4",
   "G Major": "G3 A3 B3 C4 D4 E4 F#4 G4",
-  "A Major": "A3 B3 C#4 D4 E4 F#4 G#4 A4",
-  "B Major": "B3 C#4 D#4 E4 F#4 G#4 A#4 B4",
+  "A Major": "A2 B2 C#3 D3 E3 F#3 G#3 A3",
+  "B Major": "B2 C#3 D#3 E3 F#3 G#3 A#3 B3",
 
-  // Natural Minor Scales
-  "A Minor": "A3 B3 C4 D4 E4 F4 G4 A4",
-  "B Minor": "B3 C#4 D4 E4 F#4 G4 A4 B4",
+  "A Minor": "A2 B2 C3 D3 E3 F3 G3 A3",
+  "B Minor": "B2 C#3 D3 E3 F#3 G3 A3 B3",
   "C Minor": "C3 D3 D#3 F3 G3 G#3 A#3 C4",
   "D Minor": "D3 E3 F3 G3 A3 A#3 C4 D4",
   "E Minor": "E3 F#3 G3 A3 B3 C4 D4 E4",
   "F Minor": "F3 G3 G#3 A#3 C4 C#4 D#4 F4",
   "G Minor": "G3 A3 A#3 C4 D4 D#4 F4 G4",
-};
+}
 
 const chords = {
   "C Major": "C3 E3 G3",
@@ -239,6 +257,7 @@ const getStats = async (type, modality, key) => {
     if (response.data && Array.isArray(response.data.results) && Array.isArray(response.data.correct_indices)) {
       lastResult.value = response.data.results[response.data.results.length - 1].split(' ');
       lastCorrectIndices.value = response.data.correct_indices
+      console.log(response.data.results);
       console.log("last correct indices: ", lastCorrectIndices.value  );
     } else {
       lastResult.value = []; // Fallback message
@@ -265,6 +284,17 @@ const pollForNewImage = async () => {
     console.error('Error polling for new image:', error);
   }
 };
+const refreshBadPostureImage = async () => {
+  try {
+    const response = await axios.get('http://127.0.0.1:5000/get_latest_image');
+    if (response.data.imageUrl) {
+      selectedImageUrl.value = response.data.imageUrl;
+      console.log("Refreshed bad posture image:", selectedImageUrl.value);
+    }
+  } catch (error) {
+    console.error('Error refreshing bad posture image:', error);
+  }
+};
 
 onMounted(() => {
   socket.on("mqtt_data", (data) => {
@@ -281,6 +311,7 @@ onMounted(() => {
     selectedType.value.toLowerCase(),
     selectedLetter.value
   );
+   refreshBadPostureImage();
     this.$forceUpdate();
   })
   const pollInterval = 2000; // Poll every 2 seconds
