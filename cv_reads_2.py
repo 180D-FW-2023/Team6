@@ -7,13 +7,21 @@ from pupil_apriltags import Detector
 import time
 import zmq
 from datetime import datetime, timedelta
+import collections
 
 context = zmq.Context()
-socket = context.socket(zmq.PUSH)
-
-# Bind the socket to a TCP address, with a port number (e.g., 5555)
-socket.bind("tcp://*:5555")
+socket = context.socket(zmq.PULL)
+socket.connect("tcp://localhost:5555")
+push_socket = context.socket(zmq.PUSH)
+push_socket.connect("tcp://localhost:5556")
 last_send_time = datetime.now() - timedelta(seconds=0.5)
+message_buffer = collections.deque(maxlen=25)     
+
+
+def add_message_to_buffer(message):
+    global message_buffer
+    now = datetime.now()
+    message_buffer.append((message, now))
 
 
 def apply_threshold_hsv(roi, hsv_color, threshold_h=10, threshold_s=35, threshold_v=80):
@@ -87,6 +95,7 @@ def find_pressed_keys(ref_lt_distances, ref_rt_distances, inf_lt_distances, inf_
     - inf_distance (list): A list of influenced distances, representing the current position of each key.
     - displacement_threshold (list): A list of threshold values for each key; a key is considered pressed if its
       displacement (ref_distance - inf_distance) is less than its corresponding threshold.
+
     Returns:
     - list: A list of indices representing keys that are considered pressed.
     """
@@ -106,7 +115,7 @@ def find_pressed_keys(ref_lt_distances, ref_rt_distances, inf_lt_distances, inf_
         for i in range(len(displacements)):
             if displacements[i] > displacement_threshold[i]:
                 key_pressed.append(i)
-                print(displacements)
+                # print(displacements)
 
     return key_pressed
 
@@ -539,7 +548,7 @@ while reattempt < MAX_ATTEMPTS:
         count = 0
         CAPTURE_COUNT = 50
         prev_notes = []
-        FRAME_SKIP = 5
+        FRAME_SKIP = 4
         frame_counter = 0
 
         while cap.isOpened():
@@ -551,6 +560,17 @@ while reattempt < MAX_ATTEMPTS:
                 print("Ignoring empty camera frame.")
                 break
             
+            try:
+                notes_string = socket.recv_string(zmq.NOBLOCK)  # Non-blocking receive
+                if notes_string:
+                    # print("Received notes:", notes_string)
+                    pass
+                add_message_to_buffer(notes_string)
+
+            except zmq.Again:
+                # No message received, skip without blocking
+                pass
+
 
             if count < CAPTURE_COUNT:
                 count += 1
@@ -581,7 +601,7 @@ while reattempt < MAX_ATTEMPTS:
                 ref_rt_left_corner, ref_rt_right_corner = get_lower_corners(right_tag)
 
                 # Tag Detection
-                mask_bound = (0, 0, frame_img.shape[1], frame_img.shape[0])
+                mask_bound = (0, frame_img.shape[0]//2, frame_img.shape[1], frame_img.shape[0])
                 roi, distances_lt_1, distances_rt_1, distances_lt_2, distances_rt_2 = reference_frame(frame_img, mask_bound,
                                                                                                         HSV_color_1,
                                                                                                         HSV_color_2,
@@ -592,14 +612,14 @@ while reattempt < MAX_ATTEMPTS:
                 # TODO: CHECK THRESHOLD/SET THE CORRECT ONES
                 # black_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
                 #                         -0.5, -0.4]
-                black_error_bounds = [1.7 for _ in range(16)]
+                black_error_bounds = [2.5 for _ in range(16)]
                 # white_error_bounds = [-1.0, -1.0, -0.8, -0.84, -0.7, -0.6, -0.5, -0.4, -1.0, -1.0, -0.65, -0.7, -0.6, -0.5,
                 #                         -0.5, -0.4]
-                white_error_bounds = [1.6 for _ in range(16)]
+                white_error_bounds = [2.5 for _ in range(16)]
                 # white_error_bounds[6] = 1.7
                 # white_error_bounds[7] = 1.8
-                white_error_bounds[9:] = [1.2 for _ in range(len(white_error_bounds)-9)]
-                white_error_bounds[10] = 2.2
+                # white_error_bounds[9:] = [1.2 for _ in range(len(white_error_bounds)-9)]
+                # white_error_bounds[10] = 2.2
 
                 print("Reference frame captured")
 
@@ -632,21 +652,37 @@ while reattempt < MAX_ATTEMPTS:
                     encoded_notes_white = encode_to_scale(white_error_keys, white_keys)
                     all_notes = encoded_notes_white + encoded_notes_black
 
+
                     if all_notes:
-                        print(all_notes)
-                        now = datetime.now()
-                        time_since_last_send = (now - last_send_time).total_seconds()
+                        # print(all_notes)
+                        cv_set = set(all_notes)
+                        correct_notes = set()
 
-                        # Check if the list is different or if more than 0.5 seconds have passed since the last identical list was sent
-                        if all_notes != prev_notes or time_since_last_send > 0.5:
-                            try:
-                                socket.send_string(' '.join(all_notes), zmq.NOBLOCK)
-                                print(f"Sent: {' '.join(all_notes)}")
-                                prev_notes = all_notes
-                                last_send_time = now  # Update the time of the last send
+                        for message, _ in message_buffer:
+                            now = datetime.now()
+                            time_diff = now - _
+                            seconds_ago = time_diff.total_seconds()
+                            if seconds_ago < 0.6:
+                                audio_set = set(message.split())
+                                # Check if all notes in cv_set are in audio_set
+                                # if cv_set.issubset(audio_set):
+                                correct_notes.update(cv_set.intersection(audio_set))
+                        if correct_notes:
+                            print("Correct Notes: ", ' '.join(correct_notes))
+                            push_socket.send_string(' '.join(correct_notes))
+                        # now = datetime.now()
+                        # time_since_last_send = (now - last_send_time).total_seconds()
 
-                            except zmq.Again:
-                                print("Sending failed, socket not ready")
+                        # # Check if the list is different or if more than 0.5 seconds have passed since the last identical list was sent
+                        # if all_notes != prev_notes or time_since_last_send > 0.5:
+                        #     try:
+                        #         socket.send_string(' '.join(all_notes), zmq.NOBLOCK)
+                        #         print(f"Sent: {' '.join(all_notes)}")
+                        #         prev_notes = all_notes
+                        #         last_send_time = now  # Update the time of the last send
+
+                        #     except zmq.Again:
+                        #         print("Sending failed, socket not ready")
 
                     # for keys in black_error_keys:
                     #     for i in cluster_dict_1[keys]:

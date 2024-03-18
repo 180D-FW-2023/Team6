@@ -19,10 +19,12 @@ adafruit-blinka
 sounddevice
 librosa
 pyaudio
+aubio
 
 # Camera
 scikit-learn
-cv2
+opencv-python
+pupil-apriltags
 
 # Misc
 scipy
@@ -31,6 +33,7 @@ numpy
 paho-mqtt
 pickle
 threading
+zmq
 ```
 
 # Running the code
