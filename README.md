@@ -42,6 +42,20 @@ Use `start.sh` to run the code. This will:
 2. Run the audio processing script
 3. Run the CV + LED processing script
 
+# Code explanations and sources
+## Audio
+The `audio_writes_2.py' file contains the audio processing pipeline and integration into the larger project. 
+The loop for handling the PyAudio buffer came from a demo for aubio pitch: `https://github.com/aubio/aubio/blob/master/python/demos/demo_pyaudio.py`.
+The Harmonic Product Spectrum algorithm was tweaked based off this GitHub repo: `https://github.com/joaocarvalhoopen/Polyphonic_note_detector_using_Harmonic_Product_Spectrum`.
+## CV
+The `cv_reads_2.py' file contains the CV processing pipeline and integration into the larger project. 
+
+## LED
+The `led_module.py' file contains the LED logic handling.
+The `main_controller.py` file receives results from the audio, CV and dashboard and handles control of the LED accordingly.
+
+## Dashboard
+
 
 # Methodology
 
