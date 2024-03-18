@@ -19,6 +19,7 @@ adafruit-blinka
 sounddevice
 librosa
 pyaudio
+aubio
 
 # Camera
 scikit-learn
