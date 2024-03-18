@@ -14,7 +14,7 @@ def on_publish(client, userdata, result):
 # MQTT setup
 broker = "test.mosquitto.org"
 port = 1883
-topic = "your_topic"
+topic = "lessons_mqtt"  # Same topic as subscribed by your Flask app
 
 # Create a client instance
 client = mqtt.Client()
@@ -36,7 +36,7 @@ try:
             print(f"Sent: {note}")
         elif status == mqtt.MQTT_ERR_NO_CONN:
             print("No connection to the broker")
-        time.sleep(0.3)
+        time.sleep(1)  # Adjust time as needed
 
 except KeyboardInterrupt:
     print("Test finished")
