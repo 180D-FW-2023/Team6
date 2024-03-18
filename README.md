@@ -51,12 +51,16 @@ The loop for handling the PyAudio buffer came from a demo for aubio pitch: https
 The Harmonic Product Spectrum algorithm was tweaked based off this GitHub repo: https://github.com/joaocarvalhoopen/Polyphonic_note_detector_using_Harmonic_Product_Spectrum.
 ## CV
 The `cv_reads_2.py` file contains the CV processing pipeline and integration into the larger project. 
+TODO sources
 
 ## LED
 The `led_module.py` file contains the LED logic handling.
 The `main_controller.py` file receives results from the audio, CV and dashboard and handles control of the LED accordingly.
+TODO sources
 
 ## Dashboard
+See the `full_stack` folder.
+TODO Sources
 
 
 # Methodology
