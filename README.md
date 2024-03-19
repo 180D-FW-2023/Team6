@@ -48,7 +48,7 @@ The `audio_writes_2.py` file contains the audio processing pipeline and integrat
 
 The loop for handling the PyAudio buffer came from a demo for aubio pitch: https://github.com/aubio/aubio/blob/master/python/demos/demo_pyaudio.py.
 
-The Harmonic Product Spectrum algorithm was tweaked based off this GitHub repo: https://github.com/joaocarvalhoopen/Polyphonic_note_detector_using_Harmonic_Product_Spectrum.
+The Harmonic Product Spectrum algorithm was taken from this GitHub repo: https://github.com/joaocarvalhoopen/Polyphonic_note_detector_using_Harmonic_Product_Spectrum.
 ## CV
 The `cv_reads_2.py` file contains the CV processing pipeline and integration into the larger project. 
 TODO sources
