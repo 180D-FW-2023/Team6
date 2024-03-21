@@ -65,5 +65,5 @@ TODO Sources
 
 # Methodology
 
-![Workflow](/images/workflow.png)
+![Workflow](/images/dashboard_flow.drawio.png)
 
