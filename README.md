@@ -1,12 +1,12 @@
 # Team6
 
-This is the directory for Team 6's code.
+This is the directory for Team 6's Virtual Music Teacher code.
 
 
 # Requirements
 
 ## Hardware
-- LED Strip compatible with `rpi_ws281x` library
+- A WS2812B LED Strip, or any LED strips compatible with `rpi_ws281x` library
 - Raspberry Pi 4
 - Logitech C920 Webcam
 - A rig of some sort for the webcam, mounted overhead over piano keys
@@ -47,9 +47,9 @@ zmq
 
 # Running the code
 Use `start.sh` to run the code on the Raspberry Pi 4. This will:
-1. Create the named pipe
-2. Run the audio processing script
-3. Run the CV + LED processing script
+1. Start the audio processing script
+2. Start the CV script for detecting piano keypresses
+3. Start the main controller for processing the note detection results and controlling the LED
 
 # Code explanations and sources
 ## Audio
@@ -71,9 +71,9 @@ The `cv_reads_2.py` file contains the CV processing pipeline and integration int
 
 
 ## LED
-The `led_module.py` file contains the LED logic handling.
-The `main_controller.py` file receives results from the audio, CV and dashboard and handles control of the LED accordingly.
+The `led_module.py` file contains the LED logic handling. Some of the code was taken from the `rpi_ws281x` library examples, and the rest was written by the team.
 
+The `main_controller.py` file receives results from the audio, CV and dashboard and handles logic for the different playing modes then control the LED strip accordingly. While there isn't any bugs that will break the code, there may be some edge cases that will cause the LED strip to behave unexpectedly. For example, in the "Chord, Lesson Mode", if a user plays 2 out of the 3 notes, it should count as incomplete, turn the 2 notes RED for 0.5s, before resetting it back to BLUE. However, after turning RED, the LEDs for those notes will turn off instead, but the lesson can still operate as usual and nothing will crash.  Nonetheless, under most circumstances, the LED strip should work as intended. 
 
 ## Dashboard
 See the `full_stack` folder.
