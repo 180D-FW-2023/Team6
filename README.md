@@ -76,7 +76,7 @@ The `led_module.py` file contains the LED logic handling. Some of the code was t
 The `main_controller.py` file receives results from the audio, CV and dashboard and handles logic for the different playing modes then control the LED strip accordingly. While there isn't any bugs that will break the code, there may be some edge cases that will cause the LED strip to behave unexpectedly. For example, in the "Chord, Lesson Mode", if a user plays 2 out of the 3 notes, it should count as incomplete, turn the 2 notes RED for 0.5s, before resetting it back to BLUE. However, after turning RED, the LEDs for those notes will turn off instead, but the lesson can still operate as usual and nothing will crash.  Nonetheless, under most circumstances, the LED strip should work as intended. 
 
 ## Dashboard
-See the `full_stack` folder. Frontend and backend scripts are in their respective folders. A README on how to develop on your own machine is present in the `frontend` folder.
+See the `full_stack` folder. Frontend and backend scripts are in their respective subfolders. A README on how to develop on your own machine is present in the `frontend` subfolder.
 
 
 
