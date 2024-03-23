@@ -46,7 +46,7 @@ zmq
 ```
 
 # Running the code
-Use `start.sh` to run the code. This will:
+Use `start.sh` to run the code on the Raspberry Pi 4. This will:
 1. Create the named pipe
 2. Run the audio processing script
 3. Run the CV + LED processing script
