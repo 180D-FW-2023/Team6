@@ -53,6 +53,10 @@ The Harmonic Product Spectrum algorithm was taken from this GitHub repo: https:/
 HPS was selected to supplement Librosa due to its simplicity and speed.
 The filtering on the spectrogram was minimal to improve detection of the correct note and reduce the rate of false negatives.
 
+The number of bugs is hopefully zero; notes seem to be detected just fine in all scenarios tested, with no program crashing.
+
+Future improvements include potentially using a different machine learning framework to efficiently read the audio buffer, or tweaking the manual spectrogram output to read peaks better without as many false positives while still keeping false negatives low.
+
 ## CV
 The `cv_reads_2.py` file contains the CV processing pipeline and integration into the larger project. 
 
