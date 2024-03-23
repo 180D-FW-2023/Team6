@@ -10,7 +10,7 @@ This is the directory for Team 6's code.
 - Raspberry Pi 4
 - Logitech C920 Webcam
 - A rig of some sort for the webcam, mounted overhead over piano keys
-- A computer ffor the dashboard
+- A computer for the dashboard
 - A piano (of course)
 
 ## Software
