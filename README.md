@@ -5,6 +5,15 @@ This is the directory for Team 6's code.
 
 # Requirements
 
+##Hardware
+- LED Strip compatible with rpi_ws281x library
+- Raspberry Pi 4
+- Logitech C920 Webcam
+- A rig of some sort for the webcam, mounted overhead over piano keys
+- A computer ffor the dashboard
+- A piano (of course)
+
+##Software
 Use `pip install -r requirements.txt` to install all the necessary packages.
 We advise using a Raspberry Pi 4 for better support.
 
